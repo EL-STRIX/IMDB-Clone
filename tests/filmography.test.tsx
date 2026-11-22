@@ -211,7 +211,7 @@ describe("FilmographyExplorer Virtualized Component with Filters and Sort", () =
     render(PageJSX);
 
     expect(screen.getByText("Leonardo DiCaprio")).toBeDefined();
-    expect(screen.getByText("Filmography")).toBeDefined();
-    expect(screen.getByText("Inception")).toBeDefined();
+    expect(await screen.findByText("Filmography")).toBeDefined();
+    expect(await screen.findByText("Inception")).toBeDefined();
   });
 });

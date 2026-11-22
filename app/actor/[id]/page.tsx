@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,11 +11,16 @@ import {
   getCachedGenres,
   getCachedPersonExternalIds,
 } from "@/lib/api/cached";
-import FilmographyExplorer, {
-  FilmographySkeleton,
-} from "@/components/actor/FilmographyExplorer";
+import { FilmographySkeleton } from "@/components/actor/FilmographyExplorer";
 import LocaleSwitcher from "@/components/actor/LocaleSwitcher";
 import { getDictionary } from "@/lib/i18n/translations";
+
+const FilmographyExplorer = dynamic(
+  () => import("@/components/actor/FilmographyExplorer"),
+  {
+    loading: () => <FilmographySkeleton />,
+  }
+);
 
 interface ActorPageProps {
   params: Promise<{ id: string }>;
@@ -151,7 +157,7 @@ export default async function ActorPage({
             fill
             priority
             fetchPriority="high"
-            sizes="(max-width: 768px) 100vw, 256px"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 256px, 256px"
             className="object-cover"
           />
         </div>

@@ -8,10 +8,10 @@ A production-grade, highly resilient IMDb Clone built with Next.js (App Router),
 | :--- | :---: | :--- | :---: |
 | **Phase 0: Base Project** | Days 1–5 | Next.js setup, Layout, Navbar, Grid, TMDb integration, Search, Vercel deployment | **Completed** |
 | **Task 1: API Layer** | Days 6–15 | TMDb/OMDb abstraction, cursor pagination, TanStack Query, rate limiting, retry, circuit breaker, caching, Web Vitals, resilience test suite | **Completed** |
-| **Task 2: Theming** | Days 16–19 | Light/Dark/HC/System CSS tokens, flash-free ThemeProvider, nonce-based CSP, zero CLS | **Completed** |
-| **Task 3: Movie Details** | Days 20–26 | Suspense streaming, trailer carousel, autoplay, request coalescing, ETag caching, axe-core a11y | **Completed** |
-| **Task 4: Actor Profile** | Days 28–34 | ISR actor pages, virtualized filmography, sort & filter | Pending |
-| **Task 5: Watchlist** | Days 35–41 | Offline-first IndexedDB, cross-tab sync, optimistic UI | Pending |
+| **Task 2: Theming** | Days 16–19 | Light/Dark/HC/System CSS tokens, flash-free ThemeProvider, nonce-based CSP, zero CLS ([Details](docs/TASK-5-THEMING.md)) | **Completed** |
+| **Task 3: Movie Details** | Days 20–26 | Suspense streaming, trailer carousel, autoplay, request coalescing, ETag caching, axe-core a11y ([Details](docs/TASK-3.md)) | **Completed** |
+| **Task 4: Actor Profile** | Days 27–33 | ISR actor pages, on-demand revalidation, virtualized filmography, parallel slots, Schema.org JSON-LD, i18n ([Details](docs/TASK-2.md)) | **Completed** |
+| **Task 5: Watchlist** | Days 34–40 | Offline-first IndexedDB, cross-tab sync, optimistic UI | Pending |
 | **Task 6: Review System** | Days 42–48 | User auth, CRUD reviews, helpfulness voting, optimistic mutations | Pending |
 | **Polish & Submission** | Days 49–50 | Cross-browser testing, final audit, portal submission | Pending |
 
