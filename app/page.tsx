@@ -1,11 +1,10 @@
-import { movieProvider } from "@/lib/api/provider";
+import { getCachedPopularMovies } from "@/lib/api/cached";
 import { Movie } from "@/lib/api/types";
 import InfiniteMovieList from "@/components/InfiniteMovieList";
 
 async function getInitialMovies(): Promise<{ items: Movie[]; nextCursor?: string }> {
-  "use cache";
   try {
-    return await movieProvider.getPopular();
+    return await getCachedPopularMovies();
   } catch (error) {
     console.error("Error fetching popular movies:", error);
     return { items: [] };

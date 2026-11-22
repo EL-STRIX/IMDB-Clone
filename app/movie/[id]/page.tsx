@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { movieProvider } from "@/lib/api/provider";
+import { getCachedMovieDetails } from "@/lib/api/cached";
 import { MovieDetails } from "@/lib/api/types";
 
 interface PageProps {
@@ -9,9 +9,8 @@ interface PageProps {
 }
 
 async function getMovieDetails(id: string): Promise<MovieDetails | null> {
-  "use cache";
   try {
-    return await movieProvider.getMovie(id);
+    return await getCachedMovieDetails(id);
   } catch (error) {
     console.error("Error fetching movie details:", error);
     return null;
