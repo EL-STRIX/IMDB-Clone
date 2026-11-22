@@ -28,6 +28,10 @@ export async function GET(req: NextRequest) {
     user.image = "/avatars/critic.svg";
   } else if (user.id === "usr-cinephile-202") {
     user.image = "/avatars/cinephile.svg";
+  } else if (user.id?.startsWith("usr-gh-") || user.id === "usr-gh-octocat") {
+    user.image = "/avatars/github.svg";
+  } else if (user.id?.startsWith("usr-g-")) {
+    user.image = "/avatars/google.svg";
   } else if (!user.image) {
     user.image = "/avatars/default.svg";
   }

@@ -143,7 +143,7 @@ export function resolveUserForProvider(
       id: `usr-gh-${handle.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
       name: username || "GitHub Cinephile",
       email: email || `${handle}@users.noreply.github.com`,
-      image: `https://github.com/${handle}.png`,
+      image: "/avatars/github.svg",
       role: "user",
     };
   }
@@ -154,7 +154,7 @@ export function resolveUserForProvider(
     id: `usr-g-${Math.random().toString(36).slice(2, 10)}`,
     name: gName,
     email: email || "user@gmail.com",
-    image: `https://ui-avatars.com/api/?name=${encodeURIComponent(gName)}&background=0D8ABC&color=fff`,
+    image: "/avatars/google.svg",
     role: "user",
   };
 }
