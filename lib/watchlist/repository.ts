@@ -6,6 +6,11 @@ import {
   UpdateWatchlistItemInput,
   UpdateWatchlistItemSchema,
 } from "./schema";
+import { IndexedDbRepository } from "./indexedDbRepository";
+import { LocalStorageWatchlistRepository } from "./localStorageRepository";
+
+export { IndexedDbRepository } from "./indexedDbRepository";
+export { LocalStorageWatchlistRepository } from "./localStorageRepository";
 
 export interface WatchlistRepository {
   add(item: AddWatchlistItemInput): Promise<WatchlistItem>;
@@ -84,3 +89,45 @@ export class InMemoryWatchlistRepository implements WatchlistRepository {
 }
 
 export const defaultWatchlistRepository = new InMemoryWatchlistRepository();
+
+/**
+ * Checks whether the current runtime environment supports IndexedDB.
+ */
+export function isIndexedDbSupported(): boolean {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      "indexedDB" in window &&
+      window.indexedDB !== null &&
+      typeof window.indexedDB.open === "function"
+    );
+  } catch {
+    return false;
+  }
+}
+
+let activeRepository: WatchlistRepository | null = null;
+
+/**
+ * Resolves the optimal available WatchlistRepository:
+ * 1. IndexedDbRepository (offline-first IndexedDB storage)
+ * 2. LocalStorageWatchlistRepository (fallback for browsers where IDB is unavailable)
+ * 3. InMemoryWatchlistRepository (SSR / test / fallback)
+ */
+export function getWatchlistRepository(): WatchlistRepository {
+  if (activeRepository) {
+    return activeRepository;
+  }
+
+  if (isIndexedDbSupported()) {
+    activeRepository = new IndexedDbRepository();
+    return activeRepository;
+  }
+
+  if (typeof window !== "undefined" && window.localStorage) {
+    activeRepository = new LocalStorageWatchlistRepository();
+    return activeRepository;
+  }
+
+  return defaultWatchlistRepository;
+}
