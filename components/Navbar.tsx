@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import SyncStatusIndicator from "@/components/watchlist/SyncStatusIndicator";
+import AuthButton from "@/components/auth/AuthButton";
 
 export default function Navbar() {
   return (
@@ -65,9 +66,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3 text-sm font-medium text-theme-fg/80">
           <SyncStatusIndicator />
           <ThemeToggle />
-          <Link href="#" className="hover:text-theme-fg transition-colors hidden sm:inline-block">
-            Sign In
-          </Link>
+          <AuthButton />
         </div>
       </div>
     </header>
