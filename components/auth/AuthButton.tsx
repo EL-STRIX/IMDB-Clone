@@ -79,6 +79,7 @@ export default function AuthButton() {
                 alt={user.name}
                 fill
                 sizes="28px"
+                unoptimized
                 className="object-cover"
               />
             </div>
