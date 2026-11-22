@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { Movie } from "@/lib/api/types";
 import { mergeMovies } from "@/lib/api/merge";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface InfiniteMovieListProps {
   initialMovies: Movie[];
@@ -19,6 +21,18 @@ export default function InfiniteMovieList({
   const [nextCursor, setNextCursor] = useState<string | undefined>(initialCursor);
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const queryClient = useQueryClient();
+
+  const handlePrefetch = (id: string) => {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.movies.detail(id),
+      queryFn: async () => {
+        const res = await fetch(`/api/movies/${id}`);
+        if (!res.ok) throw new Error("Failed to prefetch");
+        return res.json();
+      },
+    });
+  };
 
   useEffect(() => {
     if (!nextCursor || loading) return;
@@ -60,6 +74,8 @@ export default function InfiniteMovieList({
         {movies.map((movie) => (
           <div
             key={movie.id}
+            onMouseEnter={() => handlePrefetch(movie.id)}
+            onFocus={() => handlePrefetch(movie.id)}
             className="group flex flex-col rounded-lg bg-[#1a1a1a] border border-zinc-800 overflow-hidden shadow-sm hover:border-zinc-700 transition-all duration-200"
           >
             {/* Poster Link */}
