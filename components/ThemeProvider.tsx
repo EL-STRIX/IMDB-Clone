@@ -55,16 +55,18 @@ export function ThemeProvider({
     setThemeState(saved);
     applyTheme(saved);
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => {
-      const current = localStorage.getItem("theme") as Theme;
-      if (current === "system" || !current) {
-        applyTheme("system");
-      }
-    };
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => {
+        const current = localStorage.getItem("theme") as Theme;
+        if (current === "system" || !current) {
+          applyTheme("system");
+        }
+      };
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+      mediaQuery.addEventListener?.("change", handleChange);
+      return () => mediaQuery.removeEventListener?.("change", handleChange);
+    }
   }, [initialTheme]);
 
   return (
@@ -80,4 +82,20 @@ export function useTheme() {
     throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
+}
+
+export function ThemeScope({
+  theme,
+  children,
+  className = "",
+}: {
+  theme: "light" | "dark" | "hc";
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div data-theme={theme} className={`bg-theme-bg text-theme-fg ${className}`}>
+      {children}
+    </div>
+  );
 }

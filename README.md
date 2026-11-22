@@ -8,7 +8,7 @@ A production-grade, highly resilient IMDb Clone built with Next.js (App Router),
 | :--- | :---: | :--- | :---: |
 | **Phase 0: Base Project** | Days 1–5 | Next.js setup, Layout, Navbar, Grid, TMDb integration, Search, Vercel deployment | **Completed** |
 | **Task 1: API Layer** | Days 6–15 | TMDb/OMDb abstraction, cursor pagination, TanStack Query, rate limiting, retry, circuit breaker, caching, Web Vitals, resilience test suite | **Completed** |
-| **Task 2: Theming** | Days 16–19 | Light/Dark/HC/System CSS tokens, flash-free ThemeProvider | Pending |
+| **Task 2: Theming** | Days 16–19 | Light/Dark/HC/System CSS tokens, flash-free ThemeProvider, nonce-based CSP, zero CLS | **Completed** |
 | **Task 3: Movie Details** | Days 20–27 | Hero backdrop, trailers, cast carousel, streaming providers, accessibility | Pending |
 | **Task 4: Actor Profile** | Days 28–34 | ISR actor pages, virtualized filmography, sort & filter | Pending |
 | **Task 5: Watchlist** | Days 35–41 | Offline-first IndexedDB, cross-tab sync, optimistic UI | Pending |

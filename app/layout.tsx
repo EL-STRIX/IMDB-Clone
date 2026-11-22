@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -41,6 +41,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const themeCookie = await getThemeCookie();
+  let nonce: string | undefined;
+  try {
+    const headersList = await headers();
+    nonce = headersList.get("x-nonce") || undefined;
+  } catch {
+    nonce = undefined;
+  }
   const initialDataTheme = themeCookie === "system" ? "dark" : themeCookie;
 
   return (
@@ -52,6 +59,7 @@ export default async function RootLayout({
     >
       <head>
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
