@@ -42,6 +42,15 @@ export interface Review {
   url?: string;
 }
 
+export interface Trailer {
+  id: string;
+  name: string;
+  key: string;
+  site: string;
+  type: string;
+  thumbnailUrl: string;
+}
+
 export interface Page<T> {
   items: T[];
   page: number;

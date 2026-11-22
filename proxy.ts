@@ -9,12 +9,13 @@ export function middleware(request: NextRequest) {
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ""};
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://image.tmdb.org https://m.media-amazon.com;
+    img-src 'self' blob: data: https://image.tmdb.org https://m.media-amazon.com https://img.youtube.com https://i.ytimg.com;
     font-src 'self';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
+    frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;
     connect-src 'self' https://api.themoviedb.org https://www.omdbapi.com;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, " ").trim();

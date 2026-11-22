@@ -1,4 +1,4 @@
-import { Movie, MovieDetails, Person, CastMember, Review, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, Review, Trailer, CursorResult } from "./types";
 import { TmdbProvider } from "./tmdb";
 
 export interface MovieProvider {
@@ -8,6 +8,7 @@ export interface MovieProvider {
   getPerson(id: string): Promise<Person | null>;
   getCredits(id: string): Promise<CastMember[]>;
   getReviews(id: string): Promise<Review[]>;
+  getTrailers(id: string): Promise<Trailer[]>;
 }
 
 export const movieProvider: MovieProvider = new TmdbProvider();

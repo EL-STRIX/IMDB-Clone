@@ -4,8 +4,10 @@ import {
   getCachedMovieDetails,
   getCachedMovieCredits,
   getCachedMovieReviews,
+  getCachedMovieTrailers,
 } from "@/lib/api/cached";
 import MovieCore, { MovieCoreSkeleton } from "@/components/movie/MovieCore";
+import TrailersSection, { TrailerCarouselSkeleton } from "@/components/movie/TrailersSection";
 import Credits, { CreditsSkeleton } from "@/components/movie/Credits";
 import Reviews, { ReviewsSkeleton } from "@/components/movie/Reviews";
 
@@ -50,8 +52,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function MoviePage({ params }: PageProps) {
   const { id } = await params;
 
-  // Start all three fetches in parallel
+  // Start all fetches in parallel
   const corePromise = getCachedMovieDetails(id);
+  const trailersPromise = getCachedMovieTrailers(id);
   const creditsPromise = getCachedMovieCredits(id);
   const reviewsPromise = getCachedMovieReviews(id);
 
@@ -59,6 +62,10 @@ export default async function MoviePage({ params }: PageProps) {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Suspense fallback={<MovieCoreSkeleton />}>
         <MovieCore promise={corePromise} />
+      </Suspense>
+
+      <Suspense fallback={<TrailerCarouselSkeleton />}>
+        <TrailersSection promise={trailersPromise} />
       </Suspense>
 
       <Suspense fallback={<CreditsSkeleton />}>

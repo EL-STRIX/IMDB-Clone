@@ -1,5 +1,5 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CastMember, Review, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, Review, Trailer, CursorResult } from "./types";
 import { tmdbFetch } from "./tmdbFetch";
 import { encodeCursor, decodeCursor } from "./cursor";
 import { defaultCircuitBreaker } from "@/lib/resilience/circuitBreaker";
@@ -203,6 +203,36 @@ export class TmdbProvider implements MovieProvider {
           rating: r.author_details?.rating ?? undefined,
           createdAt: r.created_at,
           url: r.url,
+        }));
+      },
+      cacheKey
+    ).catch(() => []);
+  }
+
+  async getTrailers(id: string): Promise<Trailer[]> {
+    const cacheKey = `trailers:${id}`;
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const raw = await tmdbFetch<{
+          id: number;
+          results: Array<{
+            id: string;
+            key: string;
+            name: string;
+            site: string;
+            type: string;
+          }>;
+        }>(`/3/movie/${id}/videos?api_key=${this.apiKey}&language=en-US`);
+        const valid = (raw.results || []).filter(
+          (v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser" || v.type === "Clip")
+        );
+        return valid.slice(0, 8).map((v) => ({
+          id: v.id,
+          name: v.name,
+          key: v.key,
+          site: v.site,
+          type: v.type,
+          thumbnailUrl: `https://img.youtube.com/vi/${v.key}/hqdefault.jpg`,
         }));
       },
       cacheKey
