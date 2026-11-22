@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getCachedMovieDetails } from "@/lib/api/cached";
 import { MovieDetails } from "@/lib/api/types";
+import OmdbRatingsStream, { RatingsSkeleton } from "@/components/OmdbRatingsStream";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -69,7 +71,7 @@ export default async function MoviePage({ params }: PageProps) {
               {movie.title}
             </h1>
 
-            {/* Metadata (Release Date, Runtime, Rating) */}
+            {/* Metadata (Release Date, Runtime, TMDb Rating) */}
             <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
               {movie.releaseDate && <span>{movie.releaseDate}</span>}
               {movie.runtime > 0 && <span>•</span>}
@@ -81,6 +83,14 @@ export default async function MoviePage({ params }: PageProps) {
                 </span>
               )}
             </div>
+
+            {/* Slower OMDb streaming ratings wrapped in Suspense */}
+            <Suspense fallback={<RatingsSkeleton />}>
+              <OmdbRatingsStream
+                title={movie.title}
+                year={movie.releaseDate ? movie.releaseDate.split("-")[0] : undefined}
+              />
+            </Suspense>
           </div>
 
           {/* Genres */}
