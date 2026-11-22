@@ -7,6 +7,7 @@ import {
   UpdateWatchlistItemSchema,
 } from "./schema";
 import { WatchlistRepository } from "./repository";
+import { broadcastWatchlistChange } from "./broadcaster";
 
 const STORAGE_KEY = "imdb_watchlist_storage";
 
@@ -59,6 +60,7 @@ export class LocalStorageWatchlistRepository implements WatchlistRepository {
     const map = this.getItemsMap();
     map.set(validatedItem.id, validatedItem);
     this.saveItemsMap(map);
+    broadcastWatchlistChange("add", validatedItem.id);
     return validatedItem;
   }
 
@@ -71,6 +73,7 @@ export class LocalStorageWatchlistRepository implements WatchlistRepository {
     const deleted = map.delete(id);
     if (deleted) {
       this.saveItemsMap(map);
+      broadcastWatchlistChange("remove", id);
     }
     return deleted;
   }

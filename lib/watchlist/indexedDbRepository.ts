@@ -9,6 +9,7 @@ import {
 } from "./schema";
 import { WatchlistRepository } from "./repository";
 import { enqueueMutation, flushMutationQueue } from "./mutationQueue";
+import { broadcastWatchlistChange, emitSyncStatus } from "./broadcaster";
 
 const DB_NAME = "imdb-watchlist-db";
 const DB_VERSION = 2;
@@ -43,7 +44,10 @@ export class IndexedDbRepository implements WatchlistRepository {
 
   private triggerBackgroundSync() {
     if (typeof navigator !== "undefined" && navigator.onLine) {
-      flushMutationQueue("/api/watchlist/sync", this.customDbName).catch(() => {});
+      emitSyncStatus("syncing");
+      flushMutationQueue("/api/watchlist/sync", this.customDbName)
+        .then(() => emitSyncStatus("synced"))
+        .catch(() => {});
     }
   }
 
@@ -71,6 +75,7 @@ export class IndexedDbRepository implements WatchlistRepository {
     );
 
     this.triggerBackgroundSync();
+    broadcastWatchlistChange("add", validatedItem.id);
     return validatedItem;
   }
 
@@ -98,6 +103,7 @@ export class IndexedDbRepository implements WatchlistRepository {
     );
 
     this.triggerBackgroundSync();
+    broadcastWatchlistChange("remove", id);
     return true;
   }
 
@@ -144,6 +150,7 @@ export class IndexedDbRepository implements WatchlistRepository {
     );
 
     this.triggerBackgroundSync();
+    broadcastWatchlistChange("add", validatedItem.id);
     return validatedItem;
   }
 

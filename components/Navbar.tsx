@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import SyncStatusIndicator from "@/components/watchlist/SyncStatusIndicator";
 
 export default function Navbar() {
   return (
@@ -22,7 +23,7 @@ export default function Navbar() {
             <Link href="#" className="hover:text-theme-fg transition-colors">
               TV Shows
             </Link>
-            <Link href="#" className="hover:text-theme-fg transition-colors">
+            <Link href="/watchlist" className="hover:text-theme-fg transition-colors">
               Watchlist
             </Link>
           </nav>
@@ -62,6 +63,7 @@ export default function Navbar() {
 
         {/* Right side nav / actions */}
         <div className="flex items-center gap-3 text-sm font-medium text-theme-fg/80">
+          <SyncStatusIndicator />
           <ThemeToggle />
           <Link href="#" className="hover:text-theme-fg transition-colors hidden sm:inline-block">
             Sign In
