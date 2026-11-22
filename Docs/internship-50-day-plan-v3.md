@@ -474,11 +474,11 @@ Next.js (App Router), Tailwind CSS, Framer Motion, TanStack Query, Zod, Upstash 
 
 ## Final Submission Checklist
 
-- [ ] All 6 tasks completed
-- [ ] Live URL deployed on Vercel/Netlify and public
-- [ ] GitHub repo public
-- [ ] No API keys committed
-- [ ] Fully responsive on mobile and tablet
-- [ ] README complete
-- [ ] All links tested in incognito
-- [ ] Reviewed everything — submission cannot be changed after this
+- [x] All 6 tasks completed
+- [x] Live URL deployed on Vercel/Netlify and public
+- [x] GitHub repo public
+- [x] No API keys committed
+- [x] Fully responsive on mobile and tablet
+- [x] README complete
+- [x] All links tested in incognito
+- [x] Reviewed everything — submission cannot be changed after this
