@@ -32,6 +32,7 @@ export interface Person {
   birthday?: string;
   placeOfBirth?: string;
   popularity?: number;
+  alsoKnownAs?: string[];
 }
 
 export interface PersonExternalIds {

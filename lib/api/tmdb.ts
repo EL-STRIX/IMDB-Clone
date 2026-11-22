@@ -33,6 +33,7 @@ interface RawTmdbPerson {
   birthday?: string;
   place_of_birth?: string;
   popularity?: number;
+  also_known_as?: string[];
 }
 
 interface RawTmdbPage<T> {
@@ -82,6 +83,7 @@ function mapRawPerson(raw: RawTmdbPerson): Person {
     birthday: raw.birthday,
     placeOfBirth: raw.place_of_birth,
     popularity: raw.popularity,
+    alsoKnownAs: raw.also_known_as || [],
   };
 }
 

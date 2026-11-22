@@ -22,6 +22,7 @@ vi.mock("next/navigation", () => ({
     prefetch: vi.fn(),
   }),
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/actor/789",
   notFound: vi.fn(),
 }));
 
@@ -77,6 +78,9 @@ describe("Actor Profile Page (app/actor/[id]/page.tsx)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(cachedModule, "getCachedPersonCredits").mockResolvedValue([]);
+    vi.spyOn(cachedModule, "getCachedGenres").mockResolvedValue([]);
+    vi.spyOn(cachedModule, "getCachedPersonExternalIds").mockResolvedValue({});
   });
 
   it("generates correct metadata for the actor profile", async () => {
@@ -98,5 +102,52 @@ describe("Actor Profile Page (app/actor/[id]/page.tsx)", () => {
     expect(screen.getByText("Born: 1974-11-11")).toBeDefined();
     expect(screen.getByText("Los Angeles, California, USA")).toBeDefined();
     expect(screen.getByText(/acclaimed American actor/i)).toBeDefined();
+  });
+
+  it("renders valid Person Schema.org JSON-LD structured data block", async () => {
+    vi.spyOn(cachedModule, "getCachedPerson").mockResolvedValue({
+      ...mockActor,
+      alsoKnownAs: ["Leo", "Леонардо ДиКаприо"],
+    });
+    vi.spyOn(cachedModule, "getCachedPersonExternalIds").mockResolvedValue({
+      imdbId: "nm0000138",
+      instagramId: "leonardodicaprio",
+      twitterId: "LeoDiCaprio",
+    });
+
+    const PageJSX = await ActorPage({ params: Promise.resolve({ id: "789" }) });
+    const { container } = render(PageJSX);
+
+    const jsonLdScript = container.querySelector('script[type="application/ld+json"]');
+    expect(jsonLdScript).not.toBeNull();
+
+    const parsedJsonLd = JSON.parse(jsonLdScript!.innerHTML);
+    expect(parsedJsonLd["@context"]).toBe("https://schema.org");
+    expect(parsedJsonLd["@type"]).toBe("Person");
+    expect(parsedJsonLd.name).toBe("Leonardo DiCaprio");
+    expect(parsedJsonLd.alternateName).toEqual(["Leo", "Леонардо ДиКаприо"]);
+    expect(parsedJsonLd.birthDate).toBe("1974-11-11");
+    expect(parsedJsonLd.jobTitle).toBe("Acting");
+    expect(parsedJsonLd.sameAs).toContain("https://www.imdb.com/name/nm0000138");
+    expect(parsedJsonLd.sameAs).toContain("https://instagram.com/leonardodicaprio");
+  });
+
+  it("renders translated UI labels and also_known_as alternate names in Spanish (locale=es)", async () => {
+    vi.spyOn(cachedModule, "getCachedPerson").mockResolvedValue({
+      ...mockActor,
+      alsoKnownAs: ["Leo", "Леонардо ДиКаприо"],
+    });
+
+    const PageJSX = await ActorPage({
+      params: Promise.resolve({ id: "789" }),
+      searchParams: Promise.resolve({ locale: "es" }),
+    });
+    render(PageJSX);
+
+    expect(screen.getByText(/Volver a la lista/i)).toBeDefined();
+    expect(screen.getByText("Biografía")).toBeDefined();
+    expect(screen.getByText("Nacimiento: 1974-11-11")).toBeDefined();
+    expect(screen.getByText("También conocido como:")).toBeDefined();
+    expect(screen.getByText("Леонардо ДиКаприо")).toBeDefined();
   });
 });

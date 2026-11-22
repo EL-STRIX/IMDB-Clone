@@ -17,6 +17,7 @@ vi.mock("next/navigation", () => ({
     prefetch: vi.fn(),
   }),
   useSearchParams: () => mockSearchParams,
+  usePathname: () => "/actor/123",
   notFound: vi.fn(),
 }));
 
@@ -204,6 +205,7 @@ describe("FilmographyExplorer Virtualized Component with Filters and Sort", () =
     });
     vi.spyOn(cachedModule, "getCachedPersonCredits").mockResolvedValue(mockCredits);
     vi.spyOn(cachedModule, "getCachedGenres").mockResolvedValue(mockGenres);
+    vi.spyOn(cachedModule, "getCachedPersonExternalIds").mockResolvedValue({});
 
     const PageJSX = await ActorPage({ params: Promise.resolve({ id: "789" }) });
     render(PageJSX);
