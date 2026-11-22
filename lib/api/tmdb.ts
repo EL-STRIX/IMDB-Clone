@@ -1,5 +1,5 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CastMember, Review, Trailer, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, CursorResult } from "./types";
 import { tmdbFetch } from "./tmdbFetch";
 import { encodeCursor, decodeCursor } from "./cursor";
 import { defaultCircuitBreaker } from "@/lib/resilience/circuitBreaker";
@@ -274,6 +274,75 @@ export class TmdbProvider implements MovieProvider {
             `/3/person/popular?api_key=${this.apiKey}&language=en-US&page=1`
           );
           return (raw.results || []).slice(0, 10).map((p) => ({ id: String(p.id) }));
+        }),
+      cacheKey
+    ).catch(() => []);
+  }
+
+  async getPersonCredits(id: string): Promise<FilmographyCredit[]> {
+    const cacheKey = `person-credits:${id}`;
+    return defaultCircuitBreaker.execute(
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<{
+            id: number;
+            cast: Array<{
+              id: number;
+              title: string;
+              character: string;
+              release_date?: string;
+              poster_path: string | null;
+              vote_average?: number;
+              popularity?: number;
+              genre_ids?: number[];
+            }>;
+            crew: Array<{
+              id: number;
+              title: string;
+              job: string;
+              department: string;
+              release_date?: string;
+              poster_path: string | null;
+              vote_average?: number;
+              popularity?: number;
+              genre_ids?: number[];
+            }>;
+          }>(`/3/person/${id}/movie_credits?api_key=${this.apiKey}&language=en-US`);
+
+          const castCredits: FilmographyCredit[] = (raw.cast || []).map((c) => ({
+            id: String(c.id),
+            title: c.title,
+            role: c.character || "Self",
+            department: "Cast",
+            year: c.release_date ? c.release_date.split("-")[0] : "",
+            posterUrl: c.poster_path
+              ? `https://image.tmdb.org/t/p/w185${c.poster_path}`
+              : null,
+            rating: c.vote_average || 0,
+            popularity: c.popularity || 0,
+            genreIds: c.genre_ids || [],
+          }));
+
+          const crewCredits: FilmographyCredit[] = (raw.crew || []).map((c) => ({
+            id: String(c.id),
+            title: c.title,
+            role: c.job || c.department,
+            department: c.department || "Crew",
+            year: c.release_date ? c.release_date.split("-")[0] : "",
+            posterUrl: c.poster_path
+              ? `https://image.tmdb.org/t/p/w185${c.poster_path}`
+              : null,
+            rating: c.vote_average || 0,
+            popularity: c.popularity || 0,
+            genreIds: c.genre_ids || [],
+          }));
+
+          // Sort by year descending (most recent first)
+          return [...castCredits, ...crewCredits].sort((a, b) => {
+            const yearA = parseInt(a.year || "0", 10);
+            const yearB = parseInt(b.year || "0", 10);
+            return yearB - yearA;
+          });
         }),
       cacheKey
     ).catch(() => []);

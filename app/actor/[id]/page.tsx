@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCachedPerson, getCachedPopularPeople } from "@/lib/api/cached";
+import { getCachedPerson, getCachedPersonCredits, getCachedPopularPeople } from "@/lib/api/cached";
+import FilmographyExplorer from "@/components/actor/FilmographyExplorer";
 
 interface ActorPageProps {
   params: Promise<{ id: string }>;
@@ -57,7 +58,12 @@ export async function generateMetadata({
 
 export default async function ActorPage({ params }: ActorPageProps) {
   const { id } = await params;
-  const person = await getCachedPerson(id);
+
+  // Start person details and filmography credits fetches in parallel
+  const personPromise = getCachedPerson(id);
+  const creditsPromise = getCachedPersonCredits(id);
+
+  const [person, credits] = await Promise.all([personPromise, creditsPromise]);
 
   if (!person) {
     notFound();
@@ -126,6 +132,9 @@ export default async function ActorPage({ params }: ActorPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Virtualized Filmography Explorer */}
+      <FilmographyExplorer credits={credits} />
     </div>
   );
 }

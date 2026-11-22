@@ -36,6 +36,18 @@ export interface CastMember {
   profileUrl: string | null;
 }
 
+export interface FilmographyCredit {
+  id: string;
+  title: string;
+  role: string;
+  department?: string;
+  year?: string;
+  posterUrl: string | null;
+  rating?: number;
+  popularity?: number;
+  genreIds?: number[];
+}
+
 export interface Review {
   id: string;
   author: string;
