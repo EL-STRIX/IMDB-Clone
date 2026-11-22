@@ -77,7 +77,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-theme-bg text-theme-fg">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-theme-bg text-theme-fg">
         <ThemeProvider initialTheme={themeCookie}>
           <Providers>
             <WebVitals />

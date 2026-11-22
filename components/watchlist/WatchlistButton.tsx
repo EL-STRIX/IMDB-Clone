@@ -127,6 +127,7 @@ export default function WatchlistButton({
     return (
       <button
         type="button"
+        suppressHydrationWarning
         onClick={handleClick}
         disabled={mutation.isPending}
         aria-pressed={isSaved}
@@ -163,6 +164,7 @@ export default function WatchlistButton({
   return (
     <button
       type="button"
+      suppressHydrationWarning
       onClick={handleClick}
       disabled={mutation.isPending}
       aria-pressed={isSaved}
