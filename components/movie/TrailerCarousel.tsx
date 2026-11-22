@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, PanInfo, useReducedMotion } from "framer-motion";
 import { Trailer } from "@/lib/api/types";
@@ -53,6 +53,10 @@ export default function TrailerCarousel({
   const [isTabHidden, setIsTabHidden] = useState(false);
 
   const reducedMotion = useReducedMotion();
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const paginate = useCallback(
     (newDirection: number) => {
@@ -93,9 +97,73 @@ export default function TrailerCarousel({
     return () => clearInterval(interval);
   }, [isPaused, paginate]);
 
+  // Focus trapping and Escape key handler for dialog
+  useEffect(() => {
+    if (!activeVideo) return;
+
+    // Focus the close button when dialog opens
+    const timer = setTimeout(() => {
+      closeBtnRef.current?.focus();
+    }, 50);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeModal();
+        return;
+      }
+
+      if (e.key === "Tab" && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), iframe'
+        );
+        if (!focusableElements || focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeVideo]);
+
+  const openModal = (trailer: Trailer, e: React.MouseEvent<HTMLElement>) => {
+    triggerRef.current = e.currentTarget;
+    setActiveVideo(trailer);
+  };
+
+  const closeModal = () => {
+    setActiveVideo(null);
+    // Return focus to trigger element
+    setTimeout(() => {
+      triggerRef.current?.focus();
+    }, 50);
+  };
+
   if (!trailers || trailers.length === 0) {
     return (
-      <section className="mt-8 mb-12">
+      <section
+        className="mt-8 mb-12"
+        role="region"
+        aria-roledescription="carousel"
+        aria-label={`${movieTitle} Videos & Trailers`}
+      >
         <h2 className="text-xl sm:text-2xl font-bold text-theme-fg mb-4">
           Videos & Trailers
         </h2>
@@ -151,8 +219,36 @@ export default function TrailerCarousel({
     }
   };
 
+  // Roving tabindex arrow navigation on dots
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    let targetIndex = currentIndex;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      targetIndex = (currentIndex + 1) % trailers.length;
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      targetIndex = (currentIndex - 1 + trailers.length) % trailers.length;
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      targetIndex = 0;
+    } else if (e.key === "End") {
+      e.preventDefault();
+      targetIndex = trailers.length - 1;
+    } else {
+      return;
+    }
+
+    setPage([targetIndex, targetIndex > currentIndex ? 1 : -1]);
+    tabRefs.current[targetIndex]?.focus();
+  };
+
   return (
-    <section className="mt-8 mb-12">
+    <section
+      className="mt-8 mb-12"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label={`${movieTitle} Videos & Trailers`}
+    >
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h2 className="text-xl sm:text-2xl font-bold text-theme-fg">
@@ -183,7 +279,11 @@ export default function TrailerCarousel({
             </button>
           )}
         </div>
-        <span className="text-xs text-theme-fg-muted">
+        <span
+          className="text-xs text-theme-fg-muted"
+          aria-live="polite"
+          aria-label={`Slide ${currentIndex + 1} of ${trailers.length}`}
+        >
           {currentIndex + 1} of {trailers.length}
         </span>
       </div>
@@ -199,6 +299,9 @@ export default function TrailerCarousel({
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={page}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`Slide ${currentIndex + 1} of ${trailers.length}: ${currentTrailer.name}`}
             custom={direction}
             variants={slideVariants}
             initial="enter"
@@ -231,7 +334,7 @@ export default function TrailerCarousel({
             <div className="absolute inset-0 flex items-center justify-center">
               <button
                 type="button"
-                onClick={() => setActiveVideo(currentTrailer)}
+                onClick={(e) => openModal(currentTrailer, e)}
                 className="group p-4 rounded-full bg-black/60 hover:bg-theme-accent text-white hover:text-black transition-all backdrop-blur-sm border border-white/20 hover:scale-110 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-theme-ring"
                 aria-label={`Play trailer: ${currentTrailer.name}`}
               >
@@ -302,17 +405,28 @@ export default function TrailerCarousel({
         })}
       </div>
 
-      {/* Dot Indicators */}
+      {/* Dot Indicators with Roving Tabindex & ARIA */}
       {trailers.length > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          {trailers.map((_, index) => {
+        <div
+          role="tablist"
+          aria-label="Trailer slides navigation"
+          onKeyDown={handleTabKeyDown}
+          className="flex justify-center items-center gap-2 mt-4"
+        >
+          {trailers.map((t, index) => {
             const isActive = index === currentIndex;
             return (
               <button
-                key={index}
+                key={t.id}
+                ref={(el) => {
+                  tabRefs.current[index] = el;
+                }}
                 type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-label={`Slide ${index + 1}: ${t.name}`}
+                tabIndex={isActive ? 0 : -1}
                 onClick={() => setPage([index, index > currentIndex ? 1 : -1])}
-                aria-label={`Go to slide ${index + 1}`}
                 className={`h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring ${
                   isActive
                     ? "w-6 bg-theme-accent"
@@ -324,22 +438,27 @@ export default function TrailerCarousel({
         </div>
       )}
 
-      {/* Video Player Modal */}
+      {/* Focus-trapped Video Player Dialog */}
       {activeVideo && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label={activeVideo.name}
-          onClick={() => setActiveVideo(null)}
+          aria-labelledby="trailer-dialog-title"
+          onClick={closeModal}
         >
           <div
+            ref={modalRef}
             className="relative w-full max-w-4xl aspect-video rounded-xl overflow-hidden bg-black shadow-2xl border border-white/10"
             onClick={(e) => e.stopPropagation()}
           >
+            <h2 id="trailer-dialog-title" className="sr-only">
+              {movieTitle} - {activeVideo.name}
+            </h2>
             <button
+              ref={closeBtnRef}
               type="button"
-              onClick={() => setActiveVideo(null)}
+              onClick={closeModal}
               aria-label="Close video player"
               className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/70 hover:bg-black text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring"
             >
