@@ -33,7 +33,7 @@ A modern, production-grade movie discovery and rating web application built with
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<your-username>/imdb-clone.git
+git clone https://github.com/El-STRIX/imdb-clone.git
 cd imdb-clone
 ```
 
