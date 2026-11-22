@@ -1,5 +1,6 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, Page } from "./types";
+import { Movie, MovieDetails, Person, CursorResult } from "./types";
+import { encodeCursor, decodeCursor } from "./cursor";
 
 interface RawOmdbSearchItem {
   Title: string;
@@ -64,15 +65,15 @@ export class OmdbProvider implements MovieProvider {
     return key;
   }
 
-  async getPopular(page = 1): Promise<Page<Movie>> {
-    // OMDb has no popular list endpoint; search a popular term as fallback
-    return this.search("Avengers", page);
+  async getPopular(cursor?: string): Promise<CursorResult<Movie>> {
+    return this.search("Avengers", cursor);
   }
 
-  async search(query: string, page = 1): Promise<Page<Movie>> {
+  async search(query: string, cursor?: string): Promise<CursorResult<Movie>> {
     if (!query.trim()) {
-      return { items: [], page: 1, totalPages: 0, totalResults: 0 };
+      return { items: [], totalResults: 0 };
     }
+    const page = decodeCursor(cursor);
     const res = await fetch(
       `https://www.omdbapi.com/?apikey=${this.apiKey}&s=${encodeURIComponent(
         query
@@ -80,13 +81,13 @@ export class OmdbProvider implements MovieProvider {
     );
     const data: RawOmdbSearchResponse = await res.json();
     if (data.Response === "False" || !data.Search) {
-      return { items: [], page, totalPages: 0, totalResults: 0 };
+      return { items: [], totalResults: 0 };
     }
     const totalResults = parseInt(data.totalResults || "0", 10);
+    const hasNext = page * 10 < totalResults;
     return {
       items: data.Search.map(mapRawOmdbMovie),
-      page,
-      totalPages: Math.ceil(totalResults / 10),
+      nextCursor: hasNext ? encodeCursor(page + 1) : undefined,
       totalResults,
     };
   }
@@ -105,7 +106,6 @@ export class OmdbProvider implements MovieProvider {
   }
 
   async getPerson(): Promise<Person | null> {
-    // OMDb does not support a person/biography endpoint
     return null;
   }
 }

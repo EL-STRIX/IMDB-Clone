@@ -12,7 +12,7 @@ async function searchMovies(query: string): Promise<Movie[]> {
   "use cache";
   if (!query.trim()) return [];
   try {
-    const page = await movieProvider.search(query, 1);
+    const page = await movieProvider.search(query);
     return page.items;
   } catch (error) {
     console.error("Error searching movies:", error);

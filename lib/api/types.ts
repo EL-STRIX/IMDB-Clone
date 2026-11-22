@@ -32,3 +32,9 @@ export interface Page<T> {
   totalPages?: number;
   totalResults?: number;
 }
+
+export interface CursorResult<T> {
+  items: T[];
+  nextCursor?: string;
+  totalResults?: number;
+}

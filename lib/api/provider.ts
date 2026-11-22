@@ -1,9 +1,9 @@
-import { Movie, MovieDetails, Person, Page } from "./types";
+import { Movie, MovieDetails, Person, CursorResult } from "./types";
 import { TmdbProvider } from "./tmdb";
 
 export interface MovieProvider {
-  getPopular(page?: number): Promise<Page<Movie>>;
-  search(query: string, page?: number): Promise<Page<Movie>>;
+  getPopular(cursor?: string): Promise<CursorResult<Movie>>;
+  search(query: string, cursor?: string): Promise<CursorResult<Movie>>;
   getMovie(id: string): Promise<MovieDetails | null>;
   getPerson(id: string): Promise<Person | null>;
 }

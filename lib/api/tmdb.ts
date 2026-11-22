@@ -1,6 +1,7 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, Page } from "./types";
+import { Movie, MovieDetails, Person, CursorResult } from "./types";
 import { tmdbFetch } from "./tmdbFetch";
+import { encodeCursor, decodeCursor } from "./cursor";
 
 interface RawTmdbMovie {
   id: number;
@@ -83,31 +84,33 @@ export class TmdbProvider implements MovieProvider {
     return key;
   }
 
-  async getPopular(page = 1): Promise<Page<Movie>> {
+  async getPopular(cursor?: string): Promise<CursorResult<Movie>> {
+    const page = decodeCursor(cursor);
     const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
       `/3/movie/popular?api_key=${this.apiKey}&language=en-US&page=${page}`
     );
+    const hasNext = raw.page < raw.total_pages;
     return {
       items: (raw.results || []).map(mapRawMovie),
-      page: raw.page,
-      totalPages: raw.total_pages,
+      nextCursor: hasNext ? encodeCursor(raw.page + 1) : undefined,
       totalResults: raw.total_results,
     };
   }
 
-  async search(query: string, page = 1): Promise<Page<Movie>> {
+  async search(query: string, cursor?: string): Promise<CursorResult<Movie>> {
     if (!query.trim()) {
-      return { items: [], page: 1, totalPages: 0, totalResults: 0 };
+      return { items: [], totalResults: 0 };
     }
+    const page = decodeCursor(cursor);
     const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
       `/3/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(
         query
       )}&language=en-US&page=${page}`
     );
+    const hasNext = raw.page < raw.total_pages;
     return {
       items: (raw.results || []).map(mapRawMovie),
-      page: raw.page,
-      totalPages: raw.total_pages,
+      nextCursor: hasNext ? encodeCursor(raw.page + 1) : undefined,
       totalResults: raw.total_results,
     };
   }
