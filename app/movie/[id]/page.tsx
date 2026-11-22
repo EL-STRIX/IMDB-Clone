@@ -76,7 +76,7 @@ export default async function MoviePage({ params }: PageProps) {
       </Suspense>
 
       <Suspense fallback={<ReviewsSkeleton />}>
-        <Reviews promise={reviewsPromise} />
+        <Reviews promise={reviewsPromise} movieId={id} />
       </Suspense>
 
       <Suspense fallback={<RelatedMoviesSkeleton />}>

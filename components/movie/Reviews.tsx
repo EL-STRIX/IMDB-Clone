@@ -1,4 +1,5 @@
 import { Review } from "@/lib/api/types";
+import MovieReviewsSection from "@/components/reviews/MovieReviewsSection";
 
 export function ReviewsSkeleton() {
   return (
@@ -28,13 +29,16 @@ export function ReviewsSkeleton() {
 
 export default async function Reviews({
   promise,
+  movieId,
 }: {
   promise: Promise<Review[]>;
+  movieId?: string;
 }) {
   const reviews = await promise;
 
   return (
-    <section className="mt-12">
+    <div className="space-y-6">
+      {movieId && <MovieReviewsSection movieId={movieId} />}
       <h2 className="text-xl sm:text-2xl font-bold text-theme-fg mb-6">
         User Reviews
       </h2>
@@ -85,6 +89,6 @@ export default async function Reviews({
           })}
         </div>
       )}
-    </section>
+    </div>
   );
 }
