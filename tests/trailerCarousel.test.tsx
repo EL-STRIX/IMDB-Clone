@@ -32,9 +32,10 @@ const mockTrailers: Trailer[] = [
 ];
 
 describe("TrailerCarousel Component", () => {
-  it("renders empty state when no trailers are provided", () => {
+  it("renders empty/fallback state when no trailers are provided, with retry button", () => {
     render(<TrailerCarousel trailers={[]} />);
-    expect(screen.getByText("No official trailers available")).toBeDefined();
+    expect(screen.getByText("Trailer unavailable")).toBeDefined();
+    expect(screen.getByRole("button", { name: /retry/i })).toBeDefined();
   });
 
   it("renders the active trailer information and controls", () => {

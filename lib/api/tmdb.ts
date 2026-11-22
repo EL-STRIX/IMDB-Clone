@@ -3,6 +3,7 @@ import { Movie, MovieDetails, Person, CastMember, Review, Trailer, CursorResult 
 import { tmdbFetch } from "./tmdbFetch";
 import { encodeCursor, decodeCursor } from "./cursor";
 import { defaultCircuitBreaker } from "@/lib/resilience/circuitBreaker";
+import { withRetry } from "@/lib/resilience/retry";
 
 interface RawTmdbMovie {
   id: number;
@@ -130,12 +131,13 @@ export class TmdbProvider implements MovieProvider {
   async getMovie(id: string): Promise<MovieDetails | null> {
     const cacheKey = `movie:${id}`;
     return defaultCircuitBreaker.execute(
-      async () => {
-        const raw = await tmdbFetch<RawTmdbMovieDetails>(
-          `/3/movie/${id}?api_key=${this.apiKey}&language=en-US`
-        );
-        return mapRawMovieDetails(raw);
-      },
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<RawTmdbMovieDetails>(
+            `/3/movie/${id}?api_key=${this.apiKey}&language=en-US`
+          );
+          return mapRawMovieDetails(raw);
+        }),
       cacheKey
     ).catch(() => null);
   }
@@ -143,12 +145,13 @@ export class TmdbProvider implements MovieProvider {
   async getPerson(id: string): Promise<Person | null> {
     const cacheKey = `person:${id}`;
     return defaultCircuitBreaker.execute(
-      async () => {
-        const raw = await tmdbFetch<RawTmdbPerson>(
-          `/3/person/${id}?api_key=${this.apiKey}&language=en-US`
-        );
-        return mapRawPerson(raw);
-      },
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<RawTmdbPerson>(
+            `/3/person/${id}?api_key=${this.apiKey}&language=en-US`
+          );
+          return mapRawPerson(raw);
+        }),
       cacheKey
     ).catch(() => null);
   }
@@ -156,25 +159,26 @@ export class TmdbProvider implements MovieProvider {
   async getCredits(id: string): Promise<CastMember[]> {
     const cacheKey = `credits:${id}`;
     return defaultCircuitBreaker.execute(
-      async () => {
-        const raw = await tmdbFetch<{
-          id: number;
-          cast: Array<{
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<{
             id: number;
-            name: string;
-            character: string;
-            profile_path: string | null;
-          }>;
-        }>(`/3/movie/${id}/credits?api_key=${this.apiKey}&language=en-US`);
-        return (raw.cast || []).slice(0, 12).map((c) => ({
-          id: String(c.id),
-          name: c.name,
-          character: c.character,
-          profileUrl: c.profile_path
-            ? `https://image.tmdb.org/t/p/w185${c.profile_path}`
-            : null,
-        }));
-      },
+            cast: Array<{
+              id: number;
+              name: string;
+              character: string;
+              profile_path: string | null;
+            }>;
+          }>(`/3/movie/${id}/credits?api_key=${this.apiKey}&language=en-US`);
+          return (raw.cast || []).slice(0, 12).map((c) => ({
+            id: String(c.id),
+            name: c.name,
+            character: c.character,
+            profileUrl: c.profile_path
+              ? `https://image.tmdb.org/t/p/w185${c.profile_path}`
+              : null,
+          }));
+        }),
       cacheKey
     ).catch(() => []);
   }
@@ -182,29 +186,30 @@ export class TmdbProvider implements MovieProvider {
   async getReviews(id: string): Promise<Review[]> {
     const cacheKey = `reviews:${id}`;
     return defaultCircuitBreaker.execute(
-      async () => {
-        const raw = await tmdbFetch<{
-          id: number;
-          results: Array<{
-            id: string;
-            author: string;
-            content: string;
-            created_at: string;
-            url?: string;
-            author_details?: {
-              rating: number | null;
-            };
-          }>;
-        }>(`/3/movie/${id}/reviews?api_key=${this.apiKey}&language=en-US&page=1`);
-        return (raw.results || []).slice(0, 6).map((r) => ({
-          id: r.id,
-          author: r.author,
-          content: r.content,
-          rating: r.author_details?.rating ?? undefined,
-          createdAt: r.created_at,
-          url: r.url,
-        }));
-      },
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<{
+            id: number;
+            results: Array<{
+              id: string;
+              author: string;
+              content: string;
+              created_at: string;
+              url?: string;
+              author_details?: {
+                rating: number | null;
+              };
+            }>;
+          }>(`/3/movie/${id}/reviews?api_key=${this.apiKey}&language=en-US&page=1`);
+          return (raw.results || []).slice(0, 6).map((r) => ({
+            id: r.id,
+            author: r.author,
+            content: r.content,
+            rating: r.author_details?.rating ?? undefined,
+            createdAt: r.created_at,
+            url: r.url,
+          }));
+        }),
       cacheKey
     ).catch(() => []);
   }
@@ -212,29 +217,30 @@ export class TmdbProvider implements MovieProvider {
   async getTrailers(id: string): Promise<Trailer[]> {
     const cacheKey = `trailers:${id}`;
     return defaultCircuitBreaker.execute(
-      async () => {
-        const raw = await tmdbFetch<{
-          id: number;
-          results: Array<{
-            id: string;
-            key: string;
-            name: string;
-            site: string;
-            type: string;
-          }>;
-        }>(`/3/movie/${id}/videos?api_key=${this.apiKey}&language=en-US`);
-        const valid = (raw.results || []).filter(
-          (v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser" || v.type === "Clip")
-        );
-        return valid.slice(0, 8).map((v) => ({
-          id: v.id,
-          name: v.name,
-          key: v.key,
-          site: v.site,
-          type: v.type,
-          thumbnailUrl: `https://img.youtube.com/vi/${v.key}/hqdefault.jpg`,
-        }));
-      },
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<{
+            id: number;
+            results: Array<{
+              id: string;
+              key: string;
+              name: string;
+              site: string;
+              type: string;
+            }>;
+          }>(`/3/movie/${id}/videos?api_key=${this.apiKey}&language=en-US`);
+          const valid = (raw.results || []).filter(
+            (v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser" || v.type === "Clip")
+          );
+          return valid.slice(0, 8).map((v) => ({
+            id: v.id,
+            name: v.name,
+            key: v.key,
+            site: v.site,
+            type: v.type,
+            thumbnailUrl: `https://img.youtube.com/vi/${v.key}/hqdefault.jpg`,
+          }));
+        }),
       cacheKey
     ).catch(() => []);
   }
@@ -242,12 +248,13 @@ export class TmdbProvider implements MovieProvider {
   async getSimilar(id: string): Promise<Movie[]> {
     const cacheKey = `similar:${id}`;
     return defaultCircuitBreaker.execute(
-      async () => {
-        const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
-          `/3/movie/${id}/similar?api_key=${this.apiKey}&language=en-US&page=1`
-        );
-        return (raw.results || []).slice(0, 6).map(mapRawMovie);
-      },
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
+            `/3/movie/${id}/similar?api_key=${this.apiKey}&language=en-US&page=1`
+          );
+          return (raw.results || []).slice(0, 6).map(mapRawMovie);
+        }),
       cacheKey
     ).catch(() => []);
   }

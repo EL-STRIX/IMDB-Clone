@@ -15,7 +15,8 @@ export function middleware(request: NextRequest) {
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;
+    frame-src 'self' https://www.youtube-nocookie.com;
+    media-src 'self' https://image.tmdb.org https://www.youtube-nocookie.com;
     connect-src 'self' https://api.themoviedb.org https://www.omdbapi.com;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, " ").trim();

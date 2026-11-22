@@ -66,20 +66,14 @@ export default async function MovieCore({
       <div className="flex flex-col md:flex-row gap-8">
         {/* Movie Poster */}
         <div className="relative w-full md:w-72 aspect-[2/3] bg-theme-surface border border-theme-border rounded-lg overflow-hidden shrink-0 shadow-md">
-          {movie.posterUrl ? (
-            <Image
-              src={movie.posterUrl}
-              alt={movie.title}
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 300px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-theme-fg-muted text-sm">
-              No Poster Available
-            </div>
-          )}
+          <Image
+            src={movie.posterUrl || "/placeholder-poster.svg"}
+            alt={movie.title}
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 300px"
+            className="object-cover"
+          />
         </div>
 
         {/* Movie Details */}

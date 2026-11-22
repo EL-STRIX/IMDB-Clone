@@ -99,9 +99,36 @@ export default function TrailerCarousel({
         <h2 className="text-xl sm:text-2xl font-bold text-theme-fg mb-4">
           Videos & Trailers
         </h2>
-        <div className="aspect-video w-full rounded-xl bg-theme-surface border border-theme-border flex flex-col items-center justify-center p-6 text-center text-theme-fg-muted">
-          <p className="text-base font-medium">No official trailers available</p>
-          <p className="text-sm mt-1">Check back later for promotional video updates.</p>
+        <div className="aspect-video w-full rounded-xl bg-theme-surface border border-theme-border flex flex-col items-center justify-center p-6 text-center text-theme-fg-muted shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-theme-surface-subtle flex items-center justify-center text-theme-fg-muted mb-3 border border-theme-border">
+            <svg
+              className="w-7 h-7 stroke-current"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+              <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+            </svg>
+          </div>
+          <p className="text-base font-semibold text-theme-fg">Trailer unavailable</p>
+          <p className="text-sm mt-1 max-w-sm">
+            We couldn&apos;t load the promotional trailers for this title right now.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-theme-accent text-zinc-950 hover:bg-theme-accent/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Retry</span>
+          </button>
         </div>
       </section>
     );
