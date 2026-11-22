@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Navbar() {
   return (
@@ -60,7 +61,8 @@ export default function Navbar() {
         </div>
 
         {/* Right side nav / actions */}
-        <div className="flex items-center gap-4 text-sm font-medium text-theme-fg/80">
+        <div className="flex items-center gap-3 text-sm font-medium text-theme-fg/80">
+          <ThemeToggle />
           <Link href="#" className="hover:text-theme-fg transition-colors hidden sm:inline-block">
             Sign In
           </Link>
