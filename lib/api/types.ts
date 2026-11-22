@@ -24,6 +24,9 @@ export interface Person {
   profileUrl: string | null;
   knownFor?: string;
   biography?: string;
+  birthday?: string;
+  placeOfBirth?: string;
+  popularity?: number;
 }
 
 export interface CastMember {

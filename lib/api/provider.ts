@@ -10,6 +10,7 @@ export interface MovieProvider {
   getReviews(id: string): Promise<Review[]>;
   getTrailers(id: string): Promise<Trailer[]>;
   getSimilar(id: string): Promise<Movie[]>;
+  getPopularPeople(): Promise<Array<{ id: string }>>;
 }
 
 export const movieProvider: MovieProvider = new TmdbProvider();

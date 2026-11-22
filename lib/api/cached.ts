@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { movieProvider } from "./provider";
-import { Movie, MovieDetails, CastMember, Review, Trailer, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, Review, Trailer, CursorResult } from "./types";
 
 export const getCachedPopularMovies = (cursor?: string): Promise<CursorResult<Movie>> => {
   return unstable_cache(
@@ -64,6 +64,28 @@ export const getCachedSimilarMovies = (id: string): Promise<Movie[]> => {
     {
       tags: ["movies", `movie-${id}`],
       revalidate: 3600,
+    }
+  )();
+};
+
+export const getCachedPerson = (id: string): Promise<Person | null> => {
+  return unstable_cache(
+    async () => movieProvider.getPerson(id),
+    ["actor-details", id],
+    {
+      tags: ["actors", `actor-${id}`],
+      revalidate: 3600,
+    }
+  )();
+};
+
+export const getCachedPopularPeople = (): Promise<Array<{ id: string }>> => {
+  return unstable_cache(
+    async () => movieProvider.getPopularPeople(),
+    ["popular-actors"],
+    {
+      tags: ["actors", "popular-actors"],
+      revalidate: 86400,
     }
   )();
 };

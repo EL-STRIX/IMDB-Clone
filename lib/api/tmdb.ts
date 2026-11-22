@@ -30,6 +30,9 @@ interface RawTmdbPerson {
   profile_path: string | null;
   known_for_department?: string;
   biography?: string;
+  birthday?: string;
+  place_of_birth?: string;
+  popularity?: number;
 }
 
 interface RawTmdbPage<T> {
@@ -76,6 +79,9 @@ function mapRawPerson(raw: RawTmdbPerson): Person {
       : null,
     knownFor: raw.known_for_department,
     biography: raw.biography,
+    birthday: raw.birthday,
+    placeOfBirth: raw.place_of_birth,
+    popularity: raw.popularity,
   };
 }
 
@@ -254,6 +260,20 @@ export class TmdbProvider implements MovieProvider {
             `/3/movie/${id}/similar?api_key=${this.apiKey}&language=en-US&page=1`
           );
           return (raw.results || []).slice(0, 6).map(mapRawMovie);
+        }),
+      cacheKey
+    ).catch(() => []);
+  }
+
+  async getPopularPeople(): Promise<Array<{ id: string }>> {
+    const cacheKey = "popular-people";
+    return defaultCircuitBreaker.execute(
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<RawTmdbPage<RawTmdbPerson>>(
+            `/3/person/popular?api_key=${this.apiKey}&language=en-US&page=1`
+          );
+          return (raw.results || []).slice(0, 10).map((p) => ({ id: String(p.id) }));
         }),
       cacheKey
     ).catch(() => []);

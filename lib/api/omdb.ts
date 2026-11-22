@@ -143,4 +143,8 @@ export class OmdbProvider implements MovieProvider {
   async getSimilar(): Promise<Movie[]> {
     return [];
   }
+
+  async getPopularPeople(): Promise<Array<{ id: string }>> {
+    return [];
+  }
 }

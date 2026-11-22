@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { CastMember } from "@/lib/api/types";
 
 export function CreditsSkeleton() {
@@ -41,34 +42,29 @@ export default async function Credits({
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {cast.map((member) => (
-          <div
+          <Link
             key={member.id}
-            className="flex flex-col rounded-lg bg-theme-surface border border-theme-border overflow-hidden shadow-sm hover:border-theme-primary/50 transition-colors"
+            href={`/actor/${member.id}`}
+            className="flex flex-col rounded-lg bg-theme-surface border border-theme-border overflow-hidden shadow-sm hover:border-theme-primary/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring"
           >
             <div className="relative aspect-[2/3] w-full bg-theme-surface-subtle">
-              {member.profileUrl ? (
-                <Image
-                  src={member.profileUrl}
-                  alt={member.name}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-theme-fg-muted text-xs">
-                  No Photo
-                </div>
-              )}
+              <Image
+                src={member.profileUrl || "/placeholder-poster.svg"}
+                alt={member.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+                className="object-cover"
+              />
             </div>
             <div className="p-3 flex flex-col justify-between flex-1">
-              <p className="font-semibold text-sm text-theme-fg line-clamp-1">
+              <p className="font-semibold text-sm text-theme-fg line-clamp-1 hover:text-theme-primary transition-colors">
                 {member.name}
               </p>
               <p className="text-xs text-theme-fg-muted line-clamp-1 mt-0.5">
                 {member.character || "Cast"}
               </p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>
