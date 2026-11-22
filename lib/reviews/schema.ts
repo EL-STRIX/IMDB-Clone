@@ -51,6 +51,20 @@ export const UpdateReviewSchema = z.object({
 export type UpdateReviewInput = z.infer<typeof UpdateReviewSchema>;
 
 /**
+ * Review Revision Snapshot
+ */
+export const ReviewRevisionSchema = z.object({
+  id: z.string(),
+  timestamp: z.string(),
+  rating: z.number(),
+  title: z.string(),
+  content: z.string(),
+  spoiler: z.boolean(),
+});
+
+export type ReviewRevision = z.infer<typeof ReviewRevisionSchema>;
+
+/**
  * Full Review Record Schema
  */
 export const ReviewSchema = z.object({
@@ -72,6 +86,7 @@ export const ReviewSchema = z.object({
   downvotes: z.number().default(0),
   userVote: z.enum(["up", "down"]).nullable().optional(),
   isOptimistic: z.boolean().optional(),
+  revisions: z.array(ReviewRevisionSchema).optional(),
   deletedAt: z.string().nullable().optional(),
 });
 

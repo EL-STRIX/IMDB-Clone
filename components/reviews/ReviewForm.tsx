@@ -159,6 +159,7 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
         totalVotes: 0,
         upvotes: 0,
         downvotes: 0,
+        revisions: [],
         deletedAt: null,
         isOptimistic: true,
       };

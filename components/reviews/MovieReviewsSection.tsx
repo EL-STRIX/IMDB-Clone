@@ -2,11 +2,14 @@
 
 import React, { useState, useMemo } from "react";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "@/components/auth/SessionProvider";
 import ReviewForm from "./ReviewForm";
 import ReviewVoteButtons from "./ReviewVoteButtons";
+import ReviewHistoryModal from "./ReviewHistoryModal";
 import { Review } from "@/lib/reviews/schema";
 import { sortReviews, ReviewSortOption } from "@/lib/reviews/ranking";
+import { showToast } from "@/components/watchlist/Toast";
 
 interface MovieReviewsSectionProps {
   movieId: string;
@@ -15,8 +18,12 @@ interface MovieReviewsSectionProps {
 const EMPTY_REVIEWS: (Review & { isOptimistic?: boolean })[] = [];
 
 export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProps) {
+  const queryClient = useQueryClient();
+  const { user } = useSession();
+
   const [unmaskedSpoilers, setUnmaskedSpoilers] = useState<Record<string, boolean>>({});
   const [sortBy, setSortBy] = useState<ReviewSortOption>("helpful");
+  const [historyModalReview, setHistoryModalReview] = useState<Review | null>(null);
 
   const { data: rawReviews = EMPTY_REVIEWS, isLoading } = useQuery<(Review & { isOptimistic?: boolean })[]>({
     queryKey: ["movie-reviews", movieId],
@@ -25,6 +32,58 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
       if (!res.ok) return [];
       const data = await res.json();
       return (data.reviews || []) as Review[];
+    },
+  });
+
+  // Delete mutation with timed Undo toast
+  const deleteMutation = useMutation({
+    mutationFn: async (reviewToDelete: Review) => {
+      const res = await fetch(`/api/reviews/${reviewToDelete.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete review");
+      return reviewToDelete;
+    },
+    onMutate: async (reviewToDelete) => {
+      await queryClient.cancelQueries({ queryKey: ["movie-reviews", movieId] });
+      const previousReviews =
+        queryClient.getQueryData<Review[]>(["movie-reviews", movieId]) || [];
+
+      // Optimistically remove from list
+      queryClient.setQueryData<Review[]>(["movie-reviews", movieId], (old = []) =>
+        old.filter((r) => r.id !== reviewToDelete.id)
+      );
+
+      return { previousReviews };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousReviews) {
+        queryClient.setQueryData(["movie-reviews", movieId], context.previousReviews);
+      }
+      showToast({ message: "Failed to delete review" });
+    },
+    onSuccess: (deletedReview) => {
+      // Trigger timed Undo toast
+      showToast({
+        message: `Deleted "${deletedReview.title}"`,
+        actionLabel: "Undo",
+        onAction: async () => {
+          try {
+            const res = await fetch(`/api/reviews/${deletedReview.id}/restore`, {
+              method: "POST",
+            });
+            if (res.ok) {
+              queryClient.invalidateQueries({ queryKey: ["movie-reviews", movieId] });
+              showToast({ message: "Review restored successfully!" });
+            }
+          } catch {
+            showToast({ message: "Failed to restore review" });
+          }
+        },
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["movie-reviews", movieId] });
     },
   });
 
@@ -90,6 +149,8 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
         <div className="space-y-4">
           {reviews.map((rev) => {
             const hasSpoiler = rev.spoiler && !unmaskedSpoilers[rev.id];
+            const isAuthor = user?.id === rev.authorId || user?.role === "admin";
+            const hasRevisions = (rev.revisions && rev.revisions.length > 0) || rev.updatedAt !== rev.createdAt;
 
             return (
               <article
@@ -133,20 +194,47 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
                           </span>
                         )}
                       </div>
-                      <time className="text-[11px] text-theme-fg-muted block">
-                        {new Date(rev.createdAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </time>
+                      <div className="flex items-center gap-2 text-[11px] text-theme-fg-muted">
+                        <time>
+                          {new Date(rev.createdAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </time>
+                        {hasRevisions && (
+                          <button
+                            type="button"
+                            onClick={() => setHistoryModalReview(rev)}
+                            className="text-theme-primary hover:underline font-mono text-[10px] cursor-pointer"
+                          >
+                            (edited)
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Rating Badge */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-theme-surface-subtle border border-theme-border text-xs font-extrabold text-theme-fg">
-                    <span className="text-amber-400">★</span>
-                    <span>{rev.rating}/10</span>
+                  {/* Rating Badge & Author Actions */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-theme-surface-subtle border border-theme-border text-xs font-extrabold text-theme-fg">
+                      <span className="text-amber-400">★</span>
+                      <span>{rev.rating}/10</span>
+                    </div>
+
+                    {isAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => deleteMutation.mutate(rev)}
+                        disabled={deleteMutation.isPending}
+                        aria-label={`Delete review "${rev.title}"`}
+                        className="p-1.5 rounded-lg text-theme-fg-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                      >
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -179,6 +267,14 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
             );
           })}
         </div>
+      )}
+
+      {/* Revision History Modal */}
+      {historyModalReview && (
+        <ReviewHistoryModal
+          review={historyModalReview}
+          onClose={() => setHistoryModalReview(null)}
+        />
       )}
     </section>
   );

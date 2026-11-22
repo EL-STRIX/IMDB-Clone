@@ -1,4 +1,4 @@
-import { Review, CreateReviewInput, UpdateReviewInput } from "./schema";
+import { Review, ReviewRevision, CreateReviewInput, UpdateReviewInput } from "./schema";
 import { User } from "@/lib/auth/types";
 
 class ReviewsStore {
@@ -32,6 +32,7 @@ class ReviewsStore {
       downvotes: 3,
       helpfulVotes: 42,
       totalVotes: 45,
+      revisions: [],
       deletedAt: null,
     };
 
@@ -157,6 +158,7 @@ class ReviewsStore {
       downvotes: 0,
       helpfulVotes: 0,
       totalVotes: 0,
+      revisions: [],
       deletedAt: null,
     };
 
@@ -170,7 +172,7 @@ class ReviewsStore {
   }
 
   /**
-   * Updates an existing review if requester is author or admin.
+   * Updates an existing review if requester is author or admin, tracking previous state in revision history.
    */
   update(
     reviewId: string,
@@ -186,12 +188,25 @@ class ReviewsStore {
       return { status: "forbidden" };
     }
 
+    // Save previous state as a revision snapshot
+    const revisionSnapshot: ReviewRevision = {
+      id: `hist-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: existing.updatedAt || existing.createdAt,
+      rating: existing.rating,
+      title: existing.title,
+      content: existing.content,
+      spoiler: existing.spoiler,
+    };
+
+    const revisions = [revisionSnapshot, ...(existing.revisions || [])];
+
     const updated: Review = {
       ...existing,
       rating: patch.rating !== undefined ? patch.rating : existing.rating,
       title: patch.title !== undefined ? patch.title : existing.title,
       content: patch.content !== undefined ? patch.content : existing.content,
       spoiler: patch.spoiler !== undefined ? patch.spoiler : existing.spoiler,
+      revisions,
       updatedAt: new Date().toISOString(),
     };
 
@@ -228,17 +243,39 @@ class ReviewsStore {
   /**
    * Restores a soft-deleted review (used for Undo).
    */
-  restore(reviewId: string, author: User): boolean {
+  restore(
+    reviewId: string,
+    author: User
+  ): { status: "success"; review: Review } | { status: "not_found" } | { status: "forbidden" } {
     const existing = this.reviews.get(reviewId);
-    if (!existing || !existing.deletedAt) return false;
-    if (existing.authorId !== author.id && author.role !== "admin") return false;
+    if (!existing || !existing.deletedAt) {
+      return { status: "not_found" };
+    }
 
-    this.reviews.set(reviewId, {
+    if (existing.authorId !== author.id && author.role !== "admin") {
+      return { status: "forbidden" };
+    }
+
+    const restored: Review = {
       ...existing,
       deletedAt: null,
       updatedAt: new Date().toISOString(),
-    });
-    return true;
+    };
+
+    this.reviews.set(reviewId, restored);
+    return { status: "success", review: restored };
+  }
+
+  /**
+   * Retrieves full revision history for a review.
+   */
+  getHistory(reviewId: string): { current: Review; revisions: ReviewRevision[] } | null {
+    const review = this.reviews.get(reviewId);
+    if (!review) return null;
+    return {
+      current: review,
+      revisions: review.revisions || [],
+    };
   }
 
   clear(): void {
