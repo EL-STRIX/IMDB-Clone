@@ -238,4 +238,17 @@ export class TmdbProvider implements MovieProvider {
       cacheKey
     ).catch(() => []);
   }
+
+  async getSimilar(id: string): Promise<Movie[]> {
+    const cacheKey = `similar:${id}`;
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
+          `/3/movie/${id}/similar?api_key=${this.apiKey}&language=en-US&page=1`
+        );
+        return (raw.results || []).slice(0, 6).map(mapRawMovie);
+      },
+      cacheKey
+    ).catch(() => []);
+  }
 }

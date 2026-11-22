@@ -56,3 +56,14 @@ export const getCachedMovieTrailers = (id: string): Promise<Trailer[]> => {
     }
   )();
 };
+
+export const getCachedSimilarMovies = (id: string): Promise<Movie[]> => {
+  return unstable_cache(
+    async () => movieProvider.getSimilar(id),
+    ["similar-movies", id],
+    {
+      tags: ["movies", `movie-${id}`],
+      revalidate: 3600,
+    }
+  )();
+};

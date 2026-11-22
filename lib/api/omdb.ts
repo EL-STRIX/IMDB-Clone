@@ -139,4 +139,8 @@ export class OmdbProvider implements MovieProvider {
   async getTrailers(): Promise<Trailer[]> {
     return [];
   }
+
+  async getSimilar(): Promise<Movie[]> {
+    return [];
+  }
 }

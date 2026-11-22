@@ -67,4 +67,17 @@ describe("TrailerCarousel Component", () => {
     expect(screen.getByText("2 of 2")).toBeDefined();
     expect(screen.getByText("Teaser Trailer")).toBeDefined();
   });
+
+  it("toggles manual autoplay pause and play button", () => {
+    render(<TrailerCarousel trailers={mockTrailers} movieTitle="Test Movie" />);
+
+    const pauseBtn = screen.getByLabelText("Pause autoplay");
+    expect(pauseBtn).toBeDefined();
+
+    fireEvent.click(pauseBtn);
+    expect(screen.getByLabelText("Resume autoplay")).toBeDefined();
+
+    fireEvent.click(screen.getByLabelText("Resume autoplay"));
+    expect(screen.getByLabelText("Pause autoplay")).toBeDefined();
+  });
 });

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { motion, AnimatePresence, PanInfo, useReducedMotion } from "framer-motion";
 import { Trailer } from "@/lib/api/types";
 
 interface TrailerCarouselProps {
@@ -47,6 +47,51 @@ export default function TrailerCarousel({
 }: TrailerCarouselProps) {
   const [[page, direction], setPage] = useState<[number, number]>([0, 0]);
   const [activeVideo, setActiveVideo] = useState<Trailer | null>(null);
+  const [isManuallyPaused, setIsManuallyPaused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isTabHidden, setIsTabHidden] = useState(false);
+
+  const reducedMotion = useReducedMotion();
+
+  const paginate = useCallback(
+    (newDirection: number) => {
+      setPage(([prevPage]) => [prevPage + newDirection, newDirection]);
+    },
+    []
+  );
+
+  // Tab visibility listener
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabHidden(document.visibilityState === "hidden");
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // Compute overall pause state
+  const isPaused =
+    isManuallyPaused ||
+    isHovered ||
+    isFocused ||
+    isTabHidden ||
+    Boolean(reducedMotion) ||
+    Boolean(activeVideo) ||
+    trailers.length <= 1;
+
+  // Autoplay interval
+  useEffect(() => {
+    if (isPaused) return;
+
+    const interval = setInterval(() => {
+      paginate(1);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isPaused, paginate]);
 
   if (!trailers || trailers.length === 0) {
     return (
@@ -65,10 +110,6 @@ export default function TrailerCarousel({
   const currentIndex = ((page % trailers.length) + trailers.length) % trailers.length;
   const currentTrailer = trailers[currentIndex];
 
-  const paginate = (newDirection: number) => {
-    setPage([page + newDirection, newDirection]);
-  };
-
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo
@@ -85,17 +126,49 @@ export default function TrailerCarousel({
 
   return (
     <section className="mt-8 mb-12">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-theme-fg">
-          Videos & Trailers
-        </h2>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-theme-fg">
+            Videos & Trailers
+          </h2>
+          {trailers.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setIsManuallyPaused((prev) => !prev)}
+              aria-label={isManuallyPaused ? "Resume autoplay" : "Pause autoplay"}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-theme-surface border border-theme-border text-theme-fg-muted hover:text-theme-fg hover:border-theme-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring"
+            >
+              {isManuallyPaused ? (
+                <>
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  <span>Play</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                  <span>Pause</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
         <span className="text-xs text-theme-fg-muted">
           {currentIndex + 1} of {trailers.length}
         </span>
       </div>
 
-      {/* Carousel Container */}
-      <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black shadow-lg border border-theme-border">
+      {/* Carousel Container with Hover & Focus Listeners */}
+      <div
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        className="relative aspect-video w-full rounded-xl overflow-hidden bg-black shadow-lg border border-theme-border"
+      >
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={page}
@@ -114,7 +187,7 @@ export default function TrailerCarousel({
             onDragEnd={handleDragEnd}
             className="absolute inset-0 cursor-grab active:cursor-grabbing select-none"
           >
-            {/* Thumbnail Background */}
+            {/* Active Slide Image */}
             <Image
               src={currentTrailer.thumbnailUrl}
               alt={currentTrailer.name}
@@ -183,6 +256,23 @@ export default function TrailerCarousel({
             </svg>
           </button>
         )}
+      </div>
+
+      {/* Lazy-loaded Non-Active Slides */}
+      <div className="hidden" aria-hidden="true">
+        {trailers.map((t, idx) => {
+          if (idx === currentIndex) return null;
+          return (
+            <Image
+              key={t.id}
+              src={t.thumbnailUrl}
+              alt=""
+              width={320}
+              height={180}
+              loading="lazy"
+            />
+          );
+        })}
       </div>
 
       {/* Dot Indicators */}

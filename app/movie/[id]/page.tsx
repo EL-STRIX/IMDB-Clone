@@ -5,11 +5,13 @@ import {
   getCachedMovieCredits,
   getCachedMovieReviews,
   getCachedMovieTrailers,
+  getCachedSimilarMovies,
 } from "@/lib/api/cached";
 import MovieCore, { MovieCoreSkeleton } from "@/components/movie/MovieCore";
 import TrailersSection, { TrailerCarouselSkeleton } from "@/components/movie/TrailersSection";
 import Credits, { CreditsSkeleton } from "@/components/movie/Credits";
 import Reviews, { ReviewsSkeleton } from "@/components/movie/Reviews";
+import RelatedMoviesSection, { RelatedMoviesSkeleton } from "@/components/movie/RelatedMoviesSection";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -57,6 +59,7 @@ export default async function MoviePage({ params }: PageProps) {
   const trailersPromise = getCachedMovieTrailers(id);
   const creditsPromise = getCachedMovieCredits(id);
   const reviewsPromise = getCachedMovieReviews(id);
+  const similarPromise = getCachedSimilarMovies(id);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -74,6 +77,10 @@ export default async function MoviePage({ params }: PageProps) {
 
       <Suspense fallback={<ReviewsSkeleton />}>
         <Reviews promise={reviewsPromise} />
+      </Suspense>
+
+      <Suspense fallback={<RelatedMoviesSkeleton />}>
+        <RelatedMoviesSection promise={similarPromise} />
       </Suspense>
     </div>
   );
