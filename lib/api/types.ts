@@ -34,6 +34,16 @@ export interface Person {
   popularity?: number;
 }
 
+export interface PersonExternalIds {
+  imdbId?: string | null;
+  facebookId?: string | null;
+  instagramId?: string | null;
+  twitterId?: string | null;
+  tiktokId?: string | null;
+  youtubeId?: string | null;
+  wikidataId?: string | null;
+}
+
 export interface CastMember {
   id: string;
   name: string;

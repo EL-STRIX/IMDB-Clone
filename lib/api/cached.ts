@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { movieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, PersonExternalIds, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
 
 export const getCachedPopularMovies = (cursor?: string): Promise<CursorResult<Movie>> => {
   return unstable_cache(
@@ -107,6 +107,68 @@ export const getCachedGenres = (): Promise<Genre[]> => {
     ["movie-genres"],
     {
       tags: ["genres"],
+      revalidate: 86400,
+    }
+  )();
+};
+
+export const getCachedPersonExternalIds = (id: string): Promise<PersonExternalIds> => {
+  return unstable_cache(
+    async () => movieProvider.getPersonExternalIds(id),
+    ["actor-external-ids", id],
+    {
+      tags: ["actors", `actor-${id}`],
+      revalidate: 86400,
+    }
+  )();
+};
+
+export const getCachedSimilarActors = async (id: string): Promise<CastMember[]> => {
+  return unstable_cache(
+    async () => {
+      try {
+        const credits = await movieProvider.getPersonCredits(id);
+        if (!credits || credits.length === 0) return [];
+
+        // Select top credits by popularity / rating
+        const topCredits = [...credits]
+          .filter((c) => c.id)
+          .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+          .slice(0, 4);
+
+        if (topCredits.length === 0) return [];
+
+        // Fetch co-stars from top movies in parallel
+        const movieCreditsList = await Promise.all(
+          topCredits.map((c) => movieProvider.getCredits(c.id).catch(() => []))
+        );
+
+        // Count occurrences of co-stars
+        const coStarMap = new Map<string, { member: CastMember; count: number }>();
+        for (const castList of movieCreditsList) {
+          for (const member of castList) {
+            if (member.id === id) continue; // exclude the actor themselves
+            const existing = coStarMap.get(member.id);
+            if (existing) {
+              existing.count += 1;
+            } else {
+              coStarMap.set(member.id, { member, count: 1 });
+            }
+          }
+        }
+
+        // Sort by frequency of collaboration, then return top 6
+        return Array.from(coStarMap.values())
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 6)
+          .map((entry) => entry.member);
+      } catch {
+        return [];
+      }
+    },
+    ["actor-similar-actors", id],
+    {
+      tags: ["actors", `actor-${id}`],
       revalidate: 86400,
     }
   )();

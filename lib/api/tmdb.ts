@@ -1,5 +1,5 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, PersonExternalIds, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
 import { tmdbFetch } from "./tmdbFetch";
 import { encodeCursor, decodeCursor } from "./cursor";
 import { defaultCircuitBreaker } from "@/lib/resilience/circuitBreaker";
@@ -346,6 +346,35 @@ export class TmdbProvider implements MovieProvider {
         }),
       cacheKey
     ).catch(() => []);
+  }
+
+  async getPersonExternalIds(id: string): Promise<PersonExternalIds> {
+    const cacheKey = `person-external-ids:${id}`;
+    return defaultCircuitBreaker.execute(
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<{
+            id: number;
+            imdb_id?: string | null;
+            facebook_id?: string | null;
+            instagram_id?: string | null;
+            twitter_id?: string | null;
+            tiktok_id?: string | null;
+            youtube_id?: string | null;
+            wikidata_id?: string | null;
+          }>(`/3/person/${id}/external_ids?api_key=${this.apiKey}`);
+          return {
+            imdbId: raw.imdb_id || null,
+            facebookId: raw.facebook_id || null,
+            instagramId: raw.instagram_id || null,
+            twitterId: raw.twitter_id || null,
+            tiktokId: raw.tiktok_id || null,
+            youtubeId: raw.youtube_id || null,
+            wikidataId: raw.wikidata_id || null,
+          };
+        }),
+      cacheKey
+    ).catch(() => ({}));
   }
 
   async getGenres(): Promise<Genre[]> {
