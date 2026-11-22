@@ -1,6 +1,8 @@
 import { MovieProvider } from "./provider";
 import { Movie, MovieDetails, Person, CursorResult } from "./types";
 import { encodeCursor, decodeCursor } from "./cursor";
+import { defaultRateLimiter } from "@/lib/resilience/tokenBucket";
+import { withRetry } from "@/lib/resilience/retry";
 
 interface RawOmdbSearchItem {
   Title: string;
@@ -74,32 +76,49 @@ export class OmdbProvider implements MovieProvider {
       return { items: [], totalResults: 0 };
     }
     const page = decodeCursor(cursor);
-    const res = await fetch(
-      `https://www.omdbapi.com/?apikey=${this.apiKey}&s=${encodeURIComponent(
-        query
-      )}&page=${page}`
-    );
-    const data: RawOmdbSearchResponse = await res.json();
-    if (data.Response === "False" || !data.Search) {
-      return { items: [], totalResults: 0 };
-    }
-    const totalResults = parseInt(data.totalResults || "0", 10);
-    const hasNext = page * 10 < totalResults;
-    return {
-      items: data.Search.map(mapRawOmdbMovie),
-      nextCursor: hasNext ? encodeCursor(page + 1) : undefined,
-      totalResults,
-    };
+
+    return withRetry(async () => {
+      await defaultRateLimiter.acquire();
+      const res = await fetch(
+        `https://www.omdbapi.com/?apikey=${this.apiKey}&s=${encodeURIComponent(
+          query
+        )}&page=${page}`
+      );
+      if (!res.ok) {
+        const err: any = new Error(`OMDb HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
+      }
+      const data: RawOmdbSearchResponse = await res.json();
+      if (data.Response === "False" || !data.Search) {
+        return { items: [], totalResults: 0 };
+      }
+      const totalResults = parseInt(data.totalResults || "0", 10);
+      const hasNext = page * 10 < totalResults;
+      return {
+        items: data.Search.map(mapRawOmdbMovie),
+        nextCursor: hasNext ? encodeCursor(page + 1) : undefined,
+        totalResults,
+      };
+    });
   }
 
   async getMovie(id: string): Promise<MovieDetails | null> {
     try {
-      const res = await fetch(
-        `https://www.omdbapi.com/?apikey=${this.apiKey}&i=${id}&plot=full`
-      );
-      const data: RawOmdbMovieDetails = await res.json();
-      if (data.Response === "False") return null;
-      return mapRawOmdbDetails(data);
+      return await withRetry(async () => {
+        await defaultRateLimiter.acquire();
+        const res = await fetch(
+          `https://www.omdbapi.com/?apikey=${this.apiKey}&i=${id}&plot=full`
+        );
+        if (!res.ok) {
+          const err: any = new Error(`OMDb HTTP ${res.status}`);
+          err.status = res.status;
+          throw err;
+        }
+        const data: RawOmdbMovieDetails = await res.json();
+        if (data.Response === "False") return null;
+        return mapRawOmdbDetails(data);
+      });
     } catch {
       return null;
     }
