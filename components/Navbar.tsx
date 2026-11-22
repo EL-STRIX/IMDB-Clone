@@ -63,7 +63,17 @@ export default function Navbar() {
         </div>
 
         {/* Right side nav / actions */}
-        <div className="flex items-center gap-3 text-sm font-medium text-theme-fg/80">
+        <div className="flex items-center gap-1.5 sm:gap-3 text-sm font-medium text-theme-fg/80">
+          {/* Mobile Watchlist Icon Shortcut */}
+          <Link
+            href="/watchlist"
+            aria-label="View Watchlist"
+            className="md:hidden p-2 rounded-lg text-theme-fg/80 hover:text-theme-fg hover:bg-theme-card border border-transparent hover:border-theme-border transition-colors flex items-center justify-center min-h-[36px] min-w-[36px]"
+          >
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z" />
+            </svg>
+          </Link>
           <SyncStatusIndicator />
           <ThemeToggle />
           <AuthButton />

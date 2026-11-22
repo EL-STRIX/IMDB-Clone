@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Movie } from "@/lib/api/types";
 import { mergeMovies } from "@/lib/api/merge";
 import { queryKeys } from "@/lib/queryKeys";
+import WatchlistButton from "@/components/watchlist/WatchlistButton";
 
 interface InfiniteMovieListProps {
   initialMovies: Movie[];
@@ -116,12 +117,16 @@ export default function InfiniteMovieList({
                 </h2>
               </Link>
 
-              <button
-                type="button"
-                className="w-full py-1.5 px-3 bg-theme-header border border-theme-border hover:bg-theme-card text-theme-fg text-xs font-semibold rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>+ Watchlist</span>
-              </button>
+              <WatchlistButton
+                movie={{
+                  id: movie.id,
+                  title: movie.title,
+                  posterUrl: movie.posterUrl,
+                  year: movie.year,
+                  rating: movie.rating,
+                }}
+                className="w-full text-xs min-h-[36px]"
+              />
             </div>
           </div>
         ))}

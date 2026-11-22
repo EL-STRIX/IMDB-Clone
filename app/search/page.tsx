@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { movieProvider } from "@/lib/api/provider";
 import { Movie } from "@/lib/api/types";
+import WatchlistButton from "@/components/watchlist/WatchlistButton";
 
 interface SearchPageProps {
   searchParams: Promise<{ query?: string }>;
@@ -92,12 +93,16 @@ async function SearchResults({ searchParams }: SearchPageProps) {
                   </h2>
                 </Link>
 
-                <button
-                  type="button"
-                  className="w-full py-1.5 px-3 bg-theme-header border border-theme-border hover:bg-theme-card text-theme-fg text-xs font-semibold rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <span>+ Watchlist</span>
-                </button>
+                <WatchlistButton
+                  movie={{
+                    id: movie.id,
+                    title: movie.title,
+                    posterUrl: movie.posterUrl,
+                    year: movie.year,
+                    rating: movie.rating,
+                  }}
+                  className="w-full text-xs min-h-[36px]"
+                />
               </div>
             </div>
           ))}

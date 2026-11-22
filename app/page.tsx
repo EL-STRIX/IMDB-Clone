@@ -15,11 +15,11 @@ export default async function Home() {
   const { items: movies, nextCursor } = await getInitialMovies();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden">
       {/* Section Header */}
       <div className="mb-6 flex items-center gap-2">
-        <div className="w-1 h-6 bg-[#f5c518] rounded-full" />
-        <h1 className="text-2xl font-bold text-white tracking-wide">
+        <div className="w-1 h-6 bg-theme-primary rounded-full" />
+        <h1 className="text-2xl font-bold text-theme-fg tracking-wide">
           Popular Movies
         </h1>
       </div>

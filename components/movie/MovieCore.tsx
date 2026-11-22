@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { MovieDetails } from "@/lib/api/types";
 import OmdbRatingsStream, { RatingsSkeleton } from "@/components/OmdbRatingsStream";
+import WatchlistButton from "@/components/watchlist/WatchlistButton";
 
 export function MovieCoreSkeleton() {
   return (
@@ -103,6 +104,19 @@ export default async function MovieCore({
                 year={movie.releaseDate ? movie.releaseDate.split("-")[0] : undefined}
               />
             </Suspense>
+
+            {/* Offline-First Watchlist Bookmark Action */}
+            <div className="pt-2">
+              <WatchlistButton
+                movie={{
+                  id: movie.id,
+                  title: movie.title,
+                  posterUrl: movie.posterUrl,
+                  year: movie.releaseDate ? movie.releaseDate.split("-")[0] : undefined,
+                  rating: movie.rating,
+                }}
+              />
+            </div>
           </div>
 
           {/* Genres */}

@@ -216,7 +216,7 @@ export default function WatchlistView() {
             type="button"
             onClick={() => setFilter("all")}
             aria-pressed={filter === "all"}
-            className={`px-3 py-1 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring ${
+            className={`px-3.5 py-1.5 min-h-[36px] rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer ${
               filter === "all"
                 ? "bg-theme-accent text-zinc-950 font-bold"
                 : "text-theme-fg-muted hover:text-theme-fg"
@@ -228,7 +228,7 @@ export default function WatchlistView() {
             type="button"
             onClick={() => setFilter("unwatched")}
             aria-pressed={filter === "unwatched"}
-            className={`px-3 py-1 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring ${
+            className={`px-3.5 py-1.5 min-h-[36px] rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer ${
               filter === "unwatched"
                 ? "bg-theme-accent text-zinc-950 font-bold"
                 : "text-theme-fg-muted hover:text-theme-fg"
@@ -240,7 +240,7 @@ export default function WatchlistView() {
             type="button"
             onClick={() => setFilter("watched")}
             aria-pressed={filter === "watched"}
-            className={`px-3 py-1 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring ${
+            className={`px-3.5 py-1.5 min-h-[36px] rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer ${
               filter === "watched"
                 ? "bg-theme-accent text-zinc-950 font-bold"
                 : "text-theme-fg-muted hover:text-theme-fg"
@@ -260,7 +260,7 @@ export default function WatchlistView() {
             aria-label="Sort by"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortType)}
-            className="text-xs px-2.5 py-1.5 rounded-lg bg-theme-surface-subtle border border-theme-border text-theme-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer"
+            className="text-xs px-3 py-1.5 min-h-[36px] rounded-lg bg-theme-surface-subtle border border-theme-border text-theme-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer"
           >
             <option value="recent">Recently Added</option>
             <option value="rating">Highest Rated</option>
@@ -293,7 +293,7 @@ export default function WatchlistView() {
             >
               {/* Drag Handle Grip */}
               <div
-                className="cursor-grab active:cursor-grabbing p-1 text-theme-fg-muted hover:text-theme-fg shrink-0"
+                className="cursor-grab active:cursor-grabbing p-2 min-h-[40px] min-w-[36px] flex items-center justify-center text-theme-fg-muted hover:text-theme-fg shrink-0"
                 aria-label={`Reorder ${item.title}`}
                 tabIndex={0}
               >
@@ -351,7 +351,7 @@ export default function WatchlistView() {
                     })
                   }
                   aria-label={item.watched ? `Mark ${item.title} as unwatched` : `Mark ${item.title} as watched`}
-                  className={`px-2.5 py-1 text-xs rounded-lg font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring ${
+                  className={`px-3 py-1.5 min-h-[36px] text-xs rounded-lg font-medium border flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring ${
                     item.watched
                       ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
                       : "bg-theme-surface-subtle border-theme-border text-theme-fg-muted hover:text-theme-fg"
@@ -364,7 +364,7 @@ export default function WatchlistView() {
                   type="button"
                   onClick={() => removeMutation.mutate(item)}
                   aria-label={`Remove ${item.title} from watchlist`}
-                  className="p-1.5 rounded-lg text-theme-fg-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-theme-fg-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                 >
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
