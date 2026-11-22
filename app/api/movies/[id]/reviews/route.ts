@@ -1,116 +1,102 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/guards";
+import { CreateReviewSchema } from "@/lib/reviews/schema";
+import { reviewsStore } from "@/lib/reviews/store";
+import { reviewRateLimiter } from "@/lib/reviews/rateLimiter";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// In-memory mock reviews store for movie reviews
-interface ReviewRecord {
-  id: string;
-  movieId: string;
-  authorId: string;
-  authorName: string;
-  authorRole: string;
-  authorAvatar?: string;
-  rating: number; // 1 to 10
-  title: string;
-  content: string;
-  createdAt: string;
-}
-
-const mockReviewsStore: ReviewRecord[] = [
-  {
-    id: "rev-sample-1",
-    movieId: "550",
-    authorId: "usr-critic-101",
-    authorName: "Eleanor Vance (Top Critic)",
-    authorRole: "critic",
-    authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces",
-    rating: 9,
-    title: "A mesmerizing descent into psychological anarchy",
-    content: "David Fincher directs with surgical precision. The narrative momentum is unyielding and Norton and Pitt deliver career-defining performances.",
-    createdAt: "2026-01-15T14:30:00.000Z",
-  },
-];
-
 /**
- * GET: Publicly read reviews for a movie
+ * GET /api/movies/[id]/reviews
+ * Public endpoint to list all active reviews for a movie.
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
-  const { id } = await params;
-  const reviews = mockReviewsStore.filter((r) => r.movieId === id);
+  const { id: movieId } = await params;
+  const reviews = reviewsStore.listByMovie(movieId);
 
   return NextResponse.json({
-    movieId: id,
+    movieId,
     total: reviews.length,
     reviews,
   });
 }
 
 /**
- * POST: Write a review (Strictly protected by authentication)
+ * POST /api/movies/[id]/reviews
+ * Protected endpoint to submit a new review.
+ * Protected by authentication, rate limiting (5 req/min), and input validation.
  */
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  // 1. Guard check: Require authentication
+  // 1. Authentication check
   const auth = await requireAuth(req);
   if (!auth.authenticated) {
     return auth.response;
   }
 
+  // 2. Per-user rate limiting check
+  const rateLimit = reviewRateLimiter.check(auth.user.id);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {
+        error: "Too Many Requests",
+        message: "You have submitted too many reviews recently. Please wait before posting again.",
+        retryAfter: rateLimit.resetInSeconds,
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": rateLimit.resetInSeconds.toString(),
+          "X-RateLimit-Remaining": "0",
+        },
+      }
+    );
+  }
+
   const { id: movieId } = await params;
 
+  // 3. Request body parsing & Zod schema validation
   try {
-    const body = await req.json();
-    const { rating, title, content } = body;
+    const rawBody = await req.json();
+    const parseResult = CreateReviewSchema.safeParse(rawBody);
 
-    if (!rating || typeof rating !== "number" || rating < 1 || rating > 10) {
+    if (!parseResult.success) {
+      const fieldErrors = parseResult.error.flatten().fieldErrors;
       return NextResponse.json(
-        { error: "Validation Error", message: "Rating must be a number between 1 and 10." },
+        {
+          error: "Validation Error",
+          message: "Review submission contains invalid fields.",
+          details: fieldErrors,
+        },
         { status: 400 }
       );
     }
 
-    if (!title || typeof title !== "string" || title.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Validation Error", message: "Review headline/title is required." },
-        { status: 400 }
-      );
-    }
-
-    if (!content || typeof content !== "string" || content.trim().length < 10) {
-      return NextResponse.json(
-        { error: "Validation Error", message: "Review content must be at least 10 characters." },
-        { status: 400 }
-      );
-    }
-
-    const newReview: ReviewRecord = {
-      id: `rev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      movieId,
-      authorId: auth.user.id,
-      authorName: auth.user.name,
-      authorRole: auth.user.role,
-      authorAvatar: auth.user.image,
-      rating,
-      title: title.trim(),
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    mockReviewsStore.unshift(newReview);
+    // 4. Create review with idempotency
+    const { review, isDuplicate } = reviewsStore.create(movieId, auth.user, parseResult.data);
 
     return NextResponse.json(
       {
         success: true,
-        message: "Review submitted successfully.",
-        review: newReview,
+        message: isDuplicate
+          ? "Duplicate submission detected. Returning existing review."
+          : "Review created successfully.",
+        review,
       },
-      { status: 201 }
+      {
+        status: isDuplicate ? 200 : 201,
+        headers: {
+          "X-RateLimit-Remaining": rateLimit.remaining.toString(),
+        },
+      }
     );
   } catch {
     return NextResponse.json(
-      { error: "Bad Request", message: "Invalid review request payload." },
+      {
+        error: "Bad Request",
+        message: "Malformed JSON payload provided.",
+      },
       { status: 400 }
     );
   }
