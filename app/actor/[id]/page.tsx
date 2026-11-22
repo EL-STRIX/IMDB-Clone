@@ -102,6 +102,7 @@ export default async function ActorPage({ params }: ActorPageProps) {
             alt={person.name}
             fill
             priority
+            fetchPriority="high"
             sizes="(max-width: 768px) 100vw, 256px"
             className="object-cover"
           />

@@ -44,6 +44,22 @@ export interface PersonExternalIds {
   wikidataId?: string | null;
 }
 
+export interface AwardItem {
+  id: string;
+  event: string;
+  year: number;
+  category: string;
+  work: string;
+  outcome: "won" | "nominated";
+}
+
+export interface ActorAwardsData {
+  actorId: string;
+  totalWins: number;
+  totalNominations: number;
+  awards: AwardItem[];
+}
+
 export interface CastMember {
   id: string;
   name: string;

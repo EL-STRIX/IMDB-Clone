@@ -1,6 +1,19 @@
 import { unstable_cache } from "next/cache";
 import { movieProvider } from "./provider";
-import { Movie, MovieDetails, Person, PersonExternalIds, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
+import {
+  Movie,
+  MovieDetails,
+  Person,
+  PersonExternalIds,
+  ActorAwardsData,
+  CastMember,
+  FilmographyCredit,
+  Review,
+  Trailer,
+  Genre,
+  CursorResult,
+} from "./types";
+import { getAwardsForActor } from "@/lib/data/awards";
 
 export const getCachedPopularMovies = (cursor?: string): Promise<CursorResult<Movie>> => {
   return unstable_cache(
@@ -170,6 +183,17 @@ export const getCachedSimilarActors = async (id: string): Promise<CastMember[]> 
     {
       tags: ["actors", `actor-${id}`],
       revalidate: 86400,
+    }
+  )();
+};
+
+export const getCachedActorAwards = (id: string): Promise<ActorAwardsData> => {
+  return unstable_cache(
+    async () => getAwardsForActor(id),
+    ["actor-awards", id],
+    {
+      tags: ["actors", `actor-${id}`, "awards"],
+      revalidate: 3600,
     }
   )();
 };

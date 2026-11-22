@@ -69,19 +69,40 @@ describe("Actor Parallel Route Layout and Subpanels (Day 30)", () => {
 
   describe("Awards Subpanel (@awards)", () => {
     it("renders awards highlights and accolades", async () => {
-      vi.spyOn(cachedModule, "getCachedPerson").mockResolvedValue({
-        id: "123",
-        name: "Leonardo DiCaprio",
-        profileUrl: null,
-        popularity: 55,
+      vi.spyOn(cachedModule, "getCachedActorAwards").mockResolvedValue({
+        actorId: "123",
+        totalWins: 1,
+        totalNominations: 3,
+        awards: [
+          {
+            id: "a-1",
+            event: "Academy Awards (Oscars)",
+            year: 2016,
+            category: "Best Actor in a Leading Role",
+            work: "The Revenant",
+            outcome: "won",
+          },
+          {
+            id: "a-2",
+            event: "Golden Globe Awards",
+            year: 2014,
+            category: "Best Actor",
+            work: "The Wolf of Wall Street",
+            outcome: "nominated",
+          },
+        ],
       });
 
       const slotJSX = await AwardsSlot({ params: Promise.resolve({ id: "123" }) });
       render(slotJSX);
 
       expect(screen.getByText("Awards & Accolades")).toBeDefined();
+      expect(screen.getByText("1 Win")).toBeDefined();
+      expect(screen.getByText("3 Nominations")).toBeDefined();
       expect(screen.getByText("Academy Awards (Oscars)")).toBeDefined();
       expect(screen.getByText("Golden Globe Awards")).toBeDefined();
+      expect(screen.getByText("Winner")).toBeDefined();
+      expect(screen.getByText("Nominee")).toBeDefined();
     });
   });
 
