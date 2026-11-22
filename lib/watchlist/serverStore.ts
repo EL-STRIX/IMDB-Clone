@@ -108,6 +108,10 @@ class ServerWatchlistStore {
       .map(({ serverUpdatedAt, isDeleted, ...cleanItem }) => cleanItem);
   }
 
+  getRawServerItems(): ServerWatchlistItem[] {
+    return Array.from(this.items.values());
+  }
+
   setServerItem(item: ServerWatchlistItem): void {
     this.items.set(item.id, item);
   }
