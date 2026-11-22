@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/components/auth/SessionProvider";
@@ -22,8 +22,47 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
   const { user } = useSession();
 
   const [unmaskedSpoilers, setUnmaskedSpoilers] = useState<Record<string, boolean>>({});
+  const [unmaskedFlagged, setUnmaskedFlagged] = useState<Record<string, boolean>>({});
   const [sortBy, setSortBy] = useState<ReviewSortOption>("helpful");
   const [historyModalReview, setHistoryModalReview] = useState<Review | null>(null);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+
+  // Live updates via Server-Sent Events (SSE)
+  useEffect(() => {
+    if (typeof window === "undefined" || !("EventSource" in window)) return;
+
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource(`/api/movies/${movieId}/reviews/stream`);
+
+      eventSource.addEventListener("connected", () => {
+        setIsLiveConnected(true);
+      });
+
+      eventSource.addEventListener("review-update", () => {
+        setIsLiveConnected(true);
+        // Automatically refresh reviews without full page reload
+        queryClient.invalidateQueries({ queryKey: ["movie-reviews", movieId] });
+      });
+
+      eventSource.onmessage = () => {
+        setIsLiveConnected(true);
+        queryClient.invalidateQueries({ queryKey: ["movie-reviews", movieId] });
+      };
+
+      eventSource.onerror = () => {
+        setIsLiveConnected(false);
+      };
+    } catch {
+      setIsLiveConnected(false);
+    }
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [movieId, queryClient]);
 
   const { data: rawReviews = EMPTY_REVIEWS, isLoading } = useQuery<(Review & { isOptimistic?: boolean })[]>({
     queryKey: ["movie-reviews", movieId],
@@ -34,6 +73,45 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
       return (data.reviews || []) as Review[];
     },
   });
+
+  // Flag/Report mutation
+  const flagMutation = useMutation({
+    mutationFn: async ({ reviewId, reason }: { reviewId: string; reason?: string }) => {
+      const res = await fetch(`/api/reviews/${reviewId}/flag`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason || "inappropriate" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to flag review");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      showToast({ message: "Review reported for moderation. Thank you!" });
+      queryClient.invalidateQueries({ queryKey: ["movie-reviews", movieId] });
+    },
+    onError: (err: Error) => {
+      showToast({ message: err.message || "Could not report review" });
+    },
+  });
+
+  const handleFlagReview = (review: Review) => {
+    if (!user) {
+      showToast({ message: "Please sign in to report reviews." });
+      return;
+    }
+    if (user.id === review.authorId) {
+      showToast({ message: "You cannot report your own review." });
+      return;
+    }
+    flagMutation.mutate({ reviewId: review.id });
+  };
+
+  const toggleFlaggedContent = (id: string) => {
+    setUnmaskedFlagged((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Delete mutation with timed Undo toast
   const deleteMutation = useMutation({
@@ -98,11 +176,23 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
 
   return (
     <section aria-labelledby="user-reviews-heading" className="mt-12 space-y-6">
+      {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-theme-border/60 pb-4">
         <div>
-          <h2 id="user-reviews-heading" className="text-xl sm:text-2xl font-extrabold text-theme-fg">
-            User Reviews
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 id="user-reviews-heading" className="text-xl sm:text-2xl font-extrabold text-theme-fg">
+              User Reviews
+            </h2>
+            {isLiveConnected && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                title="Live Server-Sent Events updates enabled"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live
+              </span>
+            )}
+          </div>
           <p className="text-xs text-theme-fg-muted mt-0.5">
             Real verdicts from verified critics and community cinephiles.
           </p>
@@ -151,6 +241,8 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
             const hasSpoiler = rev.spoiler && !unmaskedSpoilers[rev.id];
             const isAuthor = user?.id === rev.authorId || user?.role === "admin";
             const hasRevisions = (rev.revisions && rev.revisions.length > 0) || rev.updatedAt !== rev.createdAt;
+            const isCommunityFlagged = !!rev.isFlagged || (rev.flagCount ?? 0) >= 3;
+            const isFlaggedRevealed = !!unmaskedFlagged[rev.id];
 
             return (
               <article
@@ -158,6 +250,8 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
                 className={`p-5 rounded-2xl bg-theme-surface border transition-all ${
                   rev.isOptimistic
                     ? "border-theme-primary/60 opacity-85 shadow-md"
+                    : isCommunityFlagged
+                    ? "border-rose-500/40 bg-rose-500/5 shadow-xs"
                     : "border-theme-border hover:border-theme-border/80 shadow-xs"
                 }`}
               >
@@ -193,6 +287,11 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
                             Posting...
                           </span>
                         )}
+                        {isCommunityFlagged && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                            Flagged for Review
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-[11px] text-theme-fg-muted">
                         <time>
@@ -215,13 +314,30 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
                     </div>
                   </div>
 
-                  {/* Rating Badge & Author Actions */}
+                  {/* Rating Badge & Author / Report Actions */}
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-theme-surface-subtle border border-theme-border text-xs font-extrabold text-theme-fg">
                       <span className="text-amber-400">★</span>
                       <span>{rev.rating}/10</span>
                     </div>
 
+                    {/* Report / Flag button for non-authors */}
+                    {!isAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => handleFlagReview(rev)}
+                        disabled={flagMutation.isPending}
+                        aria-label={`Report review by ${rev.authorName}`}
+                        title="Report this review for moderation"
+                        className="p-1.5 rounded-lg text-theme-fg-muted hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                      >
+                        <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* Delete button for author/admin */}
                     {isAuthor && (
                       <button
                         type="button"
@@ -238,27 +354,62 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
                   </div>
                 </div>
 
-                {/* Review Title / Headline */}
-                <h3 className="text-sm sm:text-base font-extrabold text-theme-fg mb-2">
-                  {rev.title}
-                </h3>
-
-                {/* Spoiler Masking */}
-                {hasSpoiler ? (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between mb-3">
-                    <span>⚠️ Warning: This review contains spoilers.</span>
+                {/* Flagged Content Warning Overlay */}
+                {isCommunityFlagged && !isFlaggedRevealed ? (
+                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-300 flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base shrink-0">⚠️</span>
+                      <div>
+                        <p className="font-bold text-rose-200">Flagged for moderation</p>
+                        <p className="text-[11px] text-rose-300/80">Multiple community members reported this review for content violations.</p>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => toggleSpoiler(rev.id)}
-                      className="font-bold underline hover:text-amber-200 cursor-pointer"
+                      onClick={() => toggleFlaggedContent(rev.id)}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-semibold cursor-pointer shrink-0"
                     >
-                      Reveal Review
+                      Show Review
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs sm:text-sm text-theme-fg/80 leading-relaxed whitespace-pre-line mb-3">
-                    {rev.content}
-                  </p>
+                  <>
+                    {isCommunityFlagged && isFlaggedRevealed && (
+                      <div className="mb-2 flex items-center justify-between text-[11px] text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-lg">
+                        <span>⚠️ Content under moderation review</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleFlaggedContent(rev.id)}
+                          className="underline hover:text-rose-200 cursor-pointer"
+                        >
+                          Hide Review
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Review Title / Headline */}
+                    <h3 className="text-sm sm:text-base font-extrabold text-theme-fg mb-2">
+                      {rev.title}
+                    </h3>
+
+                    {/* Spoiler Masking */}
+                    {hasSpoiler ? (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between mb-3">
+                        <span>⚠️ Warning: This review contains spoilers.</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleSpoiler(rev.id)}
+                          className="font-bold underline hover:text-amber-200 cursor-pointer"
+                        >
+                          Reveal Review
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs sm:text-sm text-theme-fg/80 leading-relaxed whitespace-pre-line mb-3">
+                        {rev.content}
+                      </p>
+                    )}
+                  </>
                 )}
 
                 {/* Vote Buttons & Helpfulness Counters */}

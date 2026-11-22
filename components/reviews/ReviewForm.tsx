@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/components/auth/SessionProvider";
 import { CreateReviewSchema, Review } from "@/lib/reviews/schema";
 import { reviewDraftStore } from "@/lib/reviews/draftStore";
+import { validateReviewText } from "@/lib/reviews/profanityFilter";
 import { showToast } from "@/components/watchlist/Toast";
 
 interface ReviewFormProps {
@@ -232,6 +233,15 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
       if (flat.content) errors.content = flat.content[0];
       if (flat.rating) errors.rating = flat.rating[0];
       setFieldErrors(errors);
+      return;
+    }
+
+    // Client-side profanity & abuse check
+    const profanity = validateReviewText(title, content);
+    if (!profanity.isValid) {
+      setFieldErrors({
+        content: profanity.message || "Please remove prohibited or inappropriate words before posting.",
+      });
       return;
     }
 

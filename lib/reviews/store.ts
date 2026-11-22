@@ -1,10 +1,13 @@
 import { Review, ReviewRevision, CreateReviewInput, UpdateReviewInput } from "./schema";
 import { User } from "@/lib/auth/types";
+import { validateReviewText } from "./profanityFilter";
+import { reviewEventBus } from "./events";
 
 class ReviewsStore {
   private reviews = new Map<string, Review>();
   private processedIdempotencyKeys = new Map<string, Review>();
   private userVotes = new Map<string, "up" | "down">(); // key: `${reviewId}_${userId}`
+  private flaggedReviews = new Map<string, Set<string>>(); // key: reviewId -> Set<userId>
 
   constructor() {
     this.seedDefaults();
@@ -14,6 +17,8 @@ class ReviewsStore {
     this.reviews.clear();
     this.processedIdempotencyKeys.clear();
     this.userVotes.clear();
+    this.flaggedReviews.clear();
+    this.flaggedReviews.clear();
 
     const sampleReview: Review = {
       id: "rev-sample-1",
@@ -124,6 +129,11 @@ class ReviewsStore {
     };
 
     this.reviews.set(reviewId, updated);
+    reviewEventBus.emit(existing.movieId, {
+      type: "vote",
+      reviewId,
+      data: { upvotes, downvotes, totalVotes: upvotes + downvotes },
+    });
     return { status: "success", review: updated, userVote: newVote };
   }
 
@@ -136,6 +146,12 @@ class ReviewsStore {
         review: this.processedIdempotencyKeys.get(input.idempotencyKey)!,
         isDuplicate: true,
       };
+    }
+
+    // Content moderation profanity filter
+    const profanity = validateReviewText(input.title, input.content);
+    if (!profanity.isValid) {
+      throw new Error(profanity.message);
     }
 
     const now = new Date().toISOString();
@@ -159,6 +175,9 @@ class ReviewsStore {
       helpfulVotes: 0,
       totalVotes: 0,
       revisions: [],
+      flagCount: 0,
+      isFlagged: false,
+      flaggedReasons: [],
       deletedAt: null,
     };
 
@@ -167,6 +186,12 @@ class ReviewsStore {
     if (input.idempotencyKey) {
       this.processedIdempotencyKeys.set(input.idempotencyKey, review);
     }
+
+    reviewEventBus.emit(movieId, {
+      type: "create",
+      reviewId: id,
+      data: review,
+    });
 
     return { review, isDuplicate: false };
   }
@@ -186,6 +211,17 @@ class ReviewsStore {
 
     if (existing.authorId !== author.id && author.role !== "admin") {
       return { status: "forbidden" };
+    }
+
+    // Content moderation profanity check on update
+    if (patch.title || patch.content) {
+      const profanity = validateReviewText(
+        patch.title ?? existing.title,
+        patch.content ?? existing.content
+      );
+      if (!profanity.isValid) {
+        throw new Error(profanity.message);
+      }
     }
 
     // Save previous state as a revision snapshot
@@ -211,6 +247,11 @@ class ReviewsStore {
     };
 
     this.reviews.set(reviewId, updated);
+    reviewEventBus.emit(existing.movieId, {
+      type: "update",
+      reviewId,
+      data: updated,
+    });
     return { status: "success", review: updated };
   }
 
@@ -237,6 +278,11 @@ class ReviewsStore {
     };
 
     this.reviews.set(reviewId, softDeleted);
+    reviewEventBus.emit(existing.movieId, {
+      type: "delete",
+      reviewId,
+      data: softDeleted,
+    });
     return { status: "success", review: softDeleted };
   }
 
@@ -263,7 +309,79 @@ class ReviewsStore {
     };
 
     this.reviews.set(reviewId, restored);
+    reviewEventBus.emit(existing.movieId, {
+      type: "restore",
+      reviewId,
+      data: restored,
+    });
     return { status: "success", review: restored };
+  }
+
+  /**
+   * Reports/flags a review for moderation review.
+   * Prevents self-reporting and duplicate reporting by the same user.
+   * Auto-marks review as isFlagged if flagCount >= 3.
+   */
+  flag(
+    reviewId: string,
+    userId: string,
+    reason = "inappropriate"
+  ):
+    | { status: "success"; review: Review; flagCount: number; isFlagged: boolean }
+    | { status: "not_found" }
+    | { status: "forbidden"; message: string }
+    | { status: "conflict"; message: string } {
+    const existing = this.reviews.get(reviewId);
+    if (!existing || existing.deletedAt) {
+      return { status: "not_found" };
+    }
+
+    if (existing.authorId === userId) {
+      return {
+        status: "forbidden",
+        message: "You cannot report your own review.",
+      };
+    }
+
+    const flags = this.flaggedReviews.get(reviewId) || new Set<string>();
+    if (flags.has(userId)) {
+      return {
+        status: "conflict",
+        message: "You have already reported this review.",
+      };
+    }
+
+    flags.add(userId);
+    this.flaggedReviews.set(reviewId, flags);
+
+    const flagCount = flags.size;
+    const isFlagged = flagCount >= 3;
+    const flaggedReasons = Array.from(
+      new Set([...(existing.flaggedReasons || []), reason])
+    );
+
+    const updated: Review = {
+      ...existing,
+      flagCount,
+      isFlagged,
+      flaggedReasons,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.reviews.set(reviewId, updated);
+
+    reviewEventBus.emit(existing.movieId, {
+      type: "flag",
+      reviewId,
+      data: { flagCount, isFlagged, reason },
+    });
+
+    return {
+      status: "success",
+      review: updated,
+      flagCount,
+      isFlagged,
+    };
   }
 
   /**
@@ -282,6 +400,7 @@ class ReviewsStore {
     this.reviews.clear();
     this.processedIdempotencyKeys.clear();
     this.userVotes.clear();
+    this.flaggedReviews.clear();
   }
 }
 

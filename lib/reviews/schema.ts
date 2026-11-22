@@ -87,7 +87,22 @@ export const ReviewSchema = z.object({
   userVote: z.enum(["up", "down"]).nullable().optional(),
   isOptimistic: z.boolean().optional(),
   revisions: z.array(ReviewRevisionSchema).optional(),
+  flagCount: z.number().default(0).optional(),
+  isFlagged: z.boolean().default(false).optional(),
+  flaggedReasons: z.array(z.string()).default([]).optional(),
   deletedAt: z.string().nullable().optional(),
 });
 
 export type Review = z.infer<typeof ReviewSchema>;
+
+/**
+ * Review Flag / Report Schema
+ */
+export const FlagReviewSchema = z.object({
+  reason: z
+    .enum(["spam", "harassment", "spoilers", "inappropriate", "other"])
+    .default("inappropriate"),
+  details: z.string().max(300).optional(),
+});
+
+export type FlagReviewInput = z.infer<typeof FlagReviewSchema>;

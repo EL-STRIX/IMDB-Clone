@@ -91,11 +91,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         },
       }
     );
-  } catch {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Malformed JSON payload provided.";
     return NextResponse.json(
       {
         error: "Bad Request",
-        message: "Malformed JSON payload provided.",
+        message,
       },
       { status: 400 }
     );
