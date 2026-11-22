@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/components/auth/SessionProvider";
 import ReviewForm from "./ReviewForm";
@@ -16,6 +17,7 @@ interface MovieReviewsSectionProps {
 }
 
 const EMPTY_REVIEWS: (Review & { isOptimistic?: boolean })[] = [];
+const DEFAULT_PAGE_SIZE = 5;
 
 export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProps) {
   const queryClient = useQueryClient();
@@ -26,6 +28,12 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
   const [sortBy, setSortBy] = useState<ReviewSortOption>("helpful");
   const [historyModalReview, setHistoryModalReview] = useState<Review | null>(null);
   const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(DEFAULT_PAGE_SIZE);
+
+  // Reset pagination on movie navigation
+  useEffect(() => {
+    setVisibleCount(DEFAULT_PAGE_SIZE);
+  }, [movieId]);
 
   // Live updates via Server-Sent Events (SSE)
   useEffect(() => {
@@ -41,7 +49,6 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
 
       eventSource.addEventListener("review-update", () => {
         setIsLiveConnected(true);
-        // Automatically refresh reviews without full page reload
         queryClient.invalidateQueries({ queryKey: ["movie-reviews", movieId] });
       });
 
@@ -170,6 +177,11 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
     return sortReviews(rawReviews, sortBy);
   }, [rawReviews, sortBy]);
 
+  // Paginated reviews slice for smooth 60fps scrolling with large datasets
+  const displayedReviews = useMemo(() => {
+    return reviews.slice(0, visibleCount);
+  }, [reviews, visibleCount]);
+
   const toggleSpoiler = (id: string) => {
     setUnmaskedSpoilers((prev) => ({ ...prev, [id]: !prev[id] }));
   };
@@ -237,186 +249,233 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
         </div>
       ) : (
         <div className="space-y-4">
-          {reviews.map((rev) => {
-            const hasSpoiler = rev.spoiler && !unmaskedSpoilers[rev.id];
-            const isAuthor = user?.id === rev.authorId || user?.role === "admin";
-            const hasRevisions = (rev.revisions && rev.revisions.length > 0) || rev.updatedAt !== rev.createdAt;
-            const isCommunityFlagged = !!rev.isFlagged || (rev.flagCount ?? 0) >= 3;
-            const isFlaggedRevealed = !!unmaskedFlagged[rev.id];
+          <AnimatePresence mode="popLayout" initial={false}>
+            {displayedReviews.map((rev) => {
+              const hasSpoiler = rev.spoiler && !unmaskedSpoilers[rev.id];
+              const isAuthor = user?.id === rev.authorId || user?.role === "admin";
+              const hasRevisions = (rev.revisions && rev.revisions.length > 0) || rev.updatedAt !== rev.createdAt;
+              const isCommunityFlagged = !!rev.isFlagged || (rev.flagCount ?? 0) >= 3;
+              const isFlaggedRevealed = !!unmaskedFlagged[rev.id];
 
-            return (
-              <article
-                key={rev.id}
-                className={`p-5 rounded-2xl bg-theme-surface border transition-all ${
-                  rev.isOptimistic
-                    ? "border-theme-primary/60 opacity-85 shadow-md"
-                    : isCommunityFlagged
-                    ? "border-rose-500/40 bg-rose-500/5 shadow-xs"
-                    : "border-theme-border hover:border-theme-border/80 shadow-xs"
-                }`}
-              >
-                {/* Header: Author, Rating, Date */}
-                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-                  <div className="flex items-center gap-3">
-                    {rev.authorAvatar ? (
-                      <div className="relative w-8 h-8 rounded-full overflow-hidden border border-theme-border shrink-0">
-                        <Image
-                          src={rev.authorAvatar}
-                          alt={rev.authorName}
-                          fill
-                          sizes="32px"
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-theme-surface-subtle border border-theme-border flex items-center justify-center text-xs font-bold text-theme-fg shrink-0">
-                        {rev.authorName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+              return (
+                <motion.article
+                  key={rev.id}
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{
+                    layout: { duration: 0.35, ease: "easeInOut" },
+                    opacity: { duration: 0.2 },
+                  }}
+                  className={`p-5 rounded-2xl bg-theme-surface border transition-all ${
+                    rev.isOptimistic
+                      ? "border-theme-primary/60 opacity-85 shadow-md"
+                      : isCommunityFlagged
+                      ? "border-rose-500/40 bg-rose-500/5 shadow-xs"
+                      : "border-theme-border hover:border-theme-border/80 shadow-xs"
+                  }`}
+                >
+                  {/* Header: Author, Rating, Date */}
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                    <div className="flex items-center gap-3">
+                      {rev.authorAvatar ? (
+                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-theme-border shrink-0">
+                          <Image
+                            src={rev.authorAvatar}
+                            alt={rev.authorName}
+                            fill
+                            sizes="32px"
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-theme-surface-subtle border border-theme-border flex items-center justify-center text-xs font-bold text-theme-fg shrink-0">
+                          {rev.authorName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
 
-                    <div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-theme-fg">{rev.authorName}</span>
+                          {rev.authorRole === "critic" && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold uppercase bg-amber-400/15 text-amber-400 border border-amber-400/30">
+                              ★ Top Critic
+                            </span>
+                          )}
+                          {rev.isOptimistic && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase bg-theme-accent text-zinc-950 animate-pulse">
+                              Posting...
+                            </span>
+                          )}
+                          {isCommunityFlagged && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                              Flagged for Review
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-theme-fg-muted">
+                          <time>
+                            {new Date(rev.createdAt).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </time>
+                          {hasRevisions && (
+                            <button
+                              type="button"
+                              onClick={() => setHistoryModalReview(rev)}
+                              className="text-theme-primary hover:underline font-mono text-[10px] cursor-pointer"
+                            >
+                              (edited)
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rating Badge & Author / Report Actions */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-theme-surface-subtle border border-theme-border text-xs font-extrabold text-theme-fg">
+                        <span className="text-amber-400">★</span>
+                        <span>{rev.rating}/10</span>
+                      </div>
+
+                      {/* Report / Flag button for non-authors */}
+                      {!isAuthor && (
+                        <button
+                          type="button"
+                          onClick={() => handleFlagReview(rev)}
+                          disabled={flagMutation.isPending}
+                          aria-label={`Report review by ${rev.authorName}`}
+                          title="Report this review for moderation"
+                          className="p-1.5 rounded-lg text-theme-fg-muted hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                        >
+                          <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                          </svg>
+                        </button>
+                      )}
+
+                      {/* Delete button for author/admin */}
+                      {isAuthor && (
+                        <button
+                          type="button"
+                          onClick={() => deleteMutation.mutate(rev)}
+                          disabled={deleteMutation.isPending}
+                          aria-label={`Delete review "${rev.title}"`}
+                          className="p-1.5 rounded-lg text-theme-fg-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                        >
+                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Flagged Content Warning Overlay */}
+                  {isCommunityFlagged && !isFlaggedRevealed ? (
+                    <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-300 flex items-center justify-between gap-3 mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-theme-fg">{rev.authorName}</span>
-                        {rev.authorRole === "critic" && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold uppercase bg-amber-400/15 text-amber-400 border border-amber-400/30">
-                            ★ Top Critic
-                          </span>
-                        )}
-                        {rev.isOptimistic && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase bg-theme-accent text-zinc-950 animate-pulse">
-                            Posting...
-                          </span>
-                        )}
-                        {isCommunityFlagged && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                            Flagged for Review
-                          </span>
-                        )}
+                        <span className="text-base shrink-0">⚠️</span>
+                        <div>
+                          <p className="font-bold text-rose-200">Flagged for moderation</p>
+                          <p className="text-[11px] text-rose-300/80">Multiple community members reported this review for content violations.</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-theme-fg-muted">
-                        <time>
-                          {new Date(rev.createdAt).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </time>
-                        {hasRevisions && (
+                      <button
+                        type="button"
+                        onClick={() => toggleFlaggedContent(rev.id)}
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-semibold cursor-pointer shrink-0"
+                      >
+                        Show Review
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {isCommunityFlagged && isFlaggedRevealed && (
+                        <div className="mb-2 flex items-center justify-between text-[11px] text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-lg">
+                          <span>⚠️ Content under moderation review</span>
                           <button
                             type="button"
-                            onClick={() => setHistoryModalReview(rev)}
-                            className="text-theme-primary hover:underline font-mono text-[10px] cursor-pointer"
+                            onClick={() => toggleFlaggedContent(rev.id)}
+                            className="underline hover:text-rose-200 cursor-pointer"
                           >
-                            (edited)
+                            Hide Review
                           </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                        </div>
+                      )}
 
-                  {/* Rating Badge & Author / Report Actions */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-theme-surface-subtle border border-theme-border text-xs font-extrabold text-theme-fg">
-                      <span className="text-amber-400">★</span>
-                      <span>{rev.rating}/10</span>
-                    </div>
+                      {/* Review Title / Headline */}
+                      <h3 className="text-sm sm:text-base font-extrabold text-theme-fg mb-2">
+                        {rev.title}
+                      </h3>
 
-                    {/* Report / Flag button for non-authors */}
-                    {!isAuthor && (
-                      <button
-                        type="button"
-                        onClick={() => handleFlagReview(rev)}
-                        disabled={flagMutation.isPending}
-                        aria-label={`Report review by ${rev.authorName}`}
-                        title="Report this review for moderation"
-                        className="p-1.5 rounded-lg text-theme-fg-muted hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                      >
-                        <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                        </svg>
-                      </button>
-                    )}
+                      {/* Spoiler Masking */}
+                      {hasSpoiler ? (
+                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between mb-3">
+                          <span>⚠️ Warning: This review contains spoilers.</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleSpoiler(rev.id)}
+                            className="font-bold underline hover:text-amber-200 cursor-pointer"
+                          >
+                            Reveal Review
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs sm:text-sm text-theme-fg/80 leading-relaxed whitespace-pre-line mb-3">
+                          {rev.content}
+                        </p>
+                      )}
+                    </>
+                  )}
 
-                    {/* Delete button for author/admin */}
-                    {isAuthor && (
-                      <button
-                        type="button"
-                        onClick={() => deleteMutation.mutate(rev)}
-                        disabled={deleteMutation.isPending}
-                        aria-label={`Delete review "${rev.title}"`}
-                        className="p-1.5 rounded-lg text-theme-fg-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
-                      >
-                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
+                  {/* Vote Buttons & Helpfulness Counters */}
+                  <ReviewVoteButtons review={rev} movieId={movieId} />
+                </motion.article>
+              );
+            })}
+          </AnimatePresence>
 
-                {/* Flagged Content Warning Overlay */}
-                {isCommunityFlagged && !isFlaggedRevealed ? (
-                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-300 flex items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base shrink-0">⚠️</span>
-                      <div>
-                        <p className="font-bold text-rose-200">Flagged for moderation</p>
-                        <p className="text-[11px] text-rose-300/80">Multiple community members reported this review for content violations.</p>
-                      </div>
-                    </div>
+          {/* Smooth Pagination / Load More Controls for 100+ Reviews */}
+          {reviews.length > DEFAULT_PAGE_SIZE && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-theme-border/50 text-xs text-theme-fg-muted">
+              <span>
+                Showing 1–{Math.min(visibleCount, reviews.length)} of {reviews.length} reviews
+              </span>
+              <div className="flex items-center gap-2">
+                {visibleCount < reviews.length ? (
+                  <>
                     <button
                       type="button"
-                      onClick={() => toggleFlaggedContent(rev.id)}
-                      className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-semibold cursor-pointer shrink-0"
+                      onClick={() => setVisibleCount((prev) => Math.min(prev + DEFAULT_PAGE_SIZE, reviews.length))}
+                      className="px-3.5 py-1.5 rounded-xl bg-theme-surface-subtle hover:bg-theme-surface border border-theme-border text-theme-fg font-semibold cursor-pointer transition-colors"
                     >
-                      Show Review
+                      Load More ({reviews.length - visibleCount} remaining)
                     </button>
-                  </div>
-                ) : (
-                  <>
-                    {isCommunityFlagged && isFlaggedRevealed && (
-                      <div className="mb-2 flex items-center justify-between text-[11px] text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-lg">
-                        <span>⚠️ Content under moderation review</span>
-                        <button
-                          type="button"
-                          onClick={() => toggleFlaggedContent(rev.id)}
-                          className="underline hover:text-rose-200 cursor-pointer"
-                        >
-                          Hide Review
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Review Title / Headline */}
-                    <h3 className="text-sm sm:text-base font-extrabold text-theme-fg mb-2">
-                      {rev.title}
-                    </h3>
-
-                    {/* Spoiler Masking */}
-                    {hasSpoiler ? (
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between mb-3">
-                        <span>⚠️ Warning: This review contains spoilers.</span>
-                        <button
-                          type="button"
-                          onClick={() => toggleSpoiler(rev.id)}
-                          className="font-bold underline hover:text-amber-200 cursor-pointer"
-                        >
-                          Reveal Review
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-xs sm:text-sm text-theme-fg/80 leading-relaxed whitespace-pre-line mb-3">
-                        {rev.content}
-                      </p>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setVisibleCount(reviews.length)}
+                      className="px-3 py-1.5 rounded-xl hover:bg-theme-surface-subtle text-theme-fg-muted hover:text-theme-fg font-medium cursor-pointer transition-colors"
+                    >
+                      Show All
+                    </button>
                   </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(DEFAULT_PAGE_SIZE)}
+                    className="px-3.5 py-1.5 rounded-xl bg-theme-surface-subtle hover:bg-theme-surface border border-theme-border text-theme-fg font-semibold cursor-pointer transition-colors"
+                  >
+                    Show Less
+                  </button>
                 )}
-
-                {/* Vote Buttons & Helpfulness Counters */}
-                <ReviewVoteButtons review={rev} movieId={movieId} />
-              </article>
-            );
-          })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

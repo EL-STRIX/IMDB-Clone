@@ -12,8 +12,8 @@ A production-grade, highly resilient IMDb Clone built with Next.js (App Router),
 | **Task 3: Movie Details** | Days 20–26 | Suspense streaming, trailer carousel, autoplay, request coalescing, ETag caching, axe-core a11y ([Details](docs/TASK-3.md)) | **Completed** |
 | **Task 4: Actor Profile** | Days 27–33 | ISR actor pages, on-demand revalidation, virtualized filmography, parallel slots, Schema.org JSON-LD, i18n ([Details](docs/TASK-2.md)) | **Completed** |
 | **Task 5: Watchlist** | Days 34–40 | Offline-first IndexedDB, cross-tab sync, optimistic UI, LWW conflict resolution ([Details](docs/TASK-6.md)) | **Completed** |
-| **Task 6: Review System** | Days 42–48 | User auth, CRUD reviews, helpfulness voting, optimistic mutations | Pending |
-| **Polish & Submission** | Days 49–50 | Cross-browser testing, final audit, portal submission | Pending |
+| **Task 6: Review System** | Days 41–48 | User auth, CRUD reviews, Wilson score helpfulness voting, optimistic mutations, autosave drafts, revision history, abuse moderation, SSE ([Details](docs/TASK-4.md)) | **Completed** |
+| **Polish & Submission** | Days 49–50 | Cross-browser testing, final audit, portal submission | Ready |
 
 ---
 
