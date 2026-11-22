@@ -2,8 +2,16 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCachedPerson, getCachedPersonCredits, getCachedPopularPeople } from "@/lib/api/cached";
-import FilmographyExplorer from "@/components/actor/FilmographyExplorer";
+import { Suspense } from "react";
+import {
+  getCachedPerson,
+  getCachedPersonCredits,
+  getCachedPopularPeople,
+  getCachedGenres,
+} from "@/lib/api/cached";
+import FilmographyExplorer, {
+  FilmographySkeleton,
+} from "@/components/actor/FilmographyExplorer";
 
 interface ActorPageProps {
   params: Promise<{ id: string }>;
@@ -59,11 +67,16 @@ export async function generateMetadata({
 export default async function ActorPage({ params }: ActorPageProps) {
   const { id } = await params;
 
-  // Start person details and filmography credits fetches in parallel
+  // Start person details, filmography credits, and genres fetches in parallel
   const personPromise = getCachedPerson(id);
   const creditsPromise = getCachedPersonCredits(id);
+  const genresPromise = getCachedGenres();
 
-  const [person, credits] = await Promise.all([personPromise, creditsPromise]);
+  const [person, credits, genres] = await Promise.all([
+    personPromise,
+    creditsPromise,
+    genresPromise,
+  ]);
 
   if (!person) {
     notFound();
@@ -134,7 +147,9 @@ export default async function ActorPage({ params }: ActorPageProps) {
       </div>
 
       {/* Virtualized Filmography Explorer */}
-      <FilmographyExplorer credits={credits} />
+      <Suspense fallback={<FilmographySkeleton />}>
+        <FilmographyExplorer credits={credits} genres={genres} actorId={id} />
+      </Suspense>
     </div>
   );
 }

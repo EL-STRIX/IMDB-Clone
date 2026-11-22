@@ -18,6 +18,11 @@ export interface MovieDetails {
   rating: number;
 }
 
+export interface Genre {
+  id: number;
+  name: string;
+}
+
 export interface Person {
   id: string;
   name: string;

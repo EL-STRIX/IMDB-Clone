@@ -1,5 +1,5 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
 import { tmdbFetch } from "./tmdbFetch";
 import { encodeCursor, decodeCursor } from "./cursor";
 import { defaultCircuitBreaker } from "@/lib/resilience/circuitBreaker";
@@ -343,6 +343,20 @@ export class TmdbProvider implements MovieProvider {
             const yearB = parseInt(b.year || "0", 10);
             return yearB - yearA;
           });
+        }),
+      cacheKey
+    ).catch(() => []);
+  }
+
+  async getGenres(): Promise<Genre[]> {
+    const cacheKey = "genres-list";
+    return defaultCircuitBreaker.execute(
+      () =>
+        withRetry(async () => {
+          const raw = await tmdbFetch<{
+            genres: Array<{ id: number; name: string }>;
+          }>(`/3/genre/movie/list?api_key=${this.apiKey}&language=en-US`);
+          return raw.genres || [];
         }),
       cacheKey
     ).catch(() => []);

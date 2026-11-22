@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { movieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
 
 export const getCachedPopularMovies = (cursor?: string): Promise<CursorResult<Movie>> => {
   return unstable_cache(
@@ -97,6 +97,17 @@ export const getCachedPersonCredits = (id: string): Promise<FilmographyCredit[]>
     {
       tags: ["actors", `actor-${id}`],
       revalidate: 3600,
+    }
+  )();
+};
+
+export const getCachedGenres = (): Promise<Genre[]> => {
+  return unstable_cache(
+    async () => movieProvider.getGenres(),
+    ["movie-genres"],
+    {
+      tags: ["genres"],
+      revalidate: 86400,
     }
   )();
 };

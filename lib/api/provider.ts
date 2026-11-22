@@ -1,4 +1,4 @@
-import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, FilmographyCredit, Review, Trailer, Genre, CursorResult } from "./types";
 import { TmdbProvider } from "./tmdb";
 
 export interface MovieProvider {
@@ -12,6 +12,7 @@ export interface MovieProvider {
   getSimilar(id: string): Promise<Movie[]>;
   getPopularPeople(): Promise<Array<{ id: string }>>;
   getPersonCredits(id: string): Promise<FilmographyCredit[]>;
+  getGenres(): Promise<Genre[]>;
 }
 
 export const movieProvider: MovieProvider = new TmdbProvider();

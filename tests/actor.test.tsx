@@ -14,6 +14,17 @@ vi.mock("next/image", () => ({
   },
 }));
 
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    replace: vi.fn(),
+    push: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+  notFound: vi.fn(),
+}));
+
 // Mock next/cache
 vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
