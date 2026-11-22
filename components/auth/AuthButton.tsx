@@ -9,9 +9,15 @@ export default function AuthButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Reset image error state when user changes
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.image]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -70,29 +76,32 @@ export default function AuthButton() {
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
           aria-label={`User menu for ${user.name}`}
-          className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-theme-primary/50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring"
+          className="flex items-center gap-2 h-9 px-2.5 rounded-lg bg-theme-card border border-theme-border hover:border-theme-primary/50 text-theme-fg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer"
         >
-          {user.image ? (
-            <div className="relative w-7 h-7 rounded-full overflow-hidden border border-theme-border">
+          {user.image && !imageError ? (
+            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-theme-border shrink-0 bg-theme-surface-subtle">
               <Image
                 src={user.image}
                 alt={user.name}
                 fill
-                sizes="28px"
+                sizes="24px"
                 unoptimized
+                onError={() => setImageError(true)}
                 className="object-cover"
               />
             </div>
           ) : (
-            <div className="w-7 h-7 rounded-full bg-theme-primary text-zinc-950 font-bold text-xs flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full bg-theme-primary text-black font-extrabold text-xs flex items-center justify-center shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <span className="hidden lg:inline text-xs font-semibold text-theme-fg max-w-[120px] truncate">
+          <span className="hidden sm:inline text-xs font-semibold text-theme-fg whitespace-nowrap">
             {user.name}
           </span>
           <svg
-            className="w-3.5 h-3.5 text-theme-fg-muted"
+            className={`w-3.5 h-3.5 text-theme-fg-muted shrink-0 transition-transform duration-200 ${
+              isMenuOpen ? "rotate-180" : ""
+            }`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -143,7 +152,7 @@ export default function AuthButton() {
         onClick={() => setIsModalOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={isModalOpen}
-        className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-theme-primary text-black hover:opacity-90 active:scale-95 transition-all shadow-sm border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer"
+        className="h-9 px-3.5 rounded-lg text-xs font-bold bg-theme-primary text-black hover:opacity-90 active:scale-95 transition-all shadow-sm border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer flex items-center justify-center"
       >
         Sign In
       </button>

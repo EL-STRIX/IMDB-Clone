@@ -52,7 +52,7 @@ export default function ThemeToggle() {
         aria-label="Toggle theme menu"
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="relative flex items-center justify-center p-2 rounded-md bg-theme-card border border-theme-border text-theme-fg hover:border-theme-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring focus-visible:ring-offset-2 focus-visible:ring-offset-theme-bg cursor-pointer"
+        className="relative flex items-center justify-center h-9 w-9 rounded-lg bg-theme-card border border-theme-border text-theme-fg hover:border-theme-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring focus-visible:ring-offset-2 focus-visible:ring-offset-theme-bg cursor-pointer"
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.span

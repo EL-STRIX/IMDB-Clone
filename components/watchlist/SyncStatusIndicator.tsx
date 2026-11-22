@@ -61,25 +61,26 @@ export default function SyncStatusIndicator() {
       role="status"
       aria-live="polite"
       aria-label={`Watchlist sync status: ${status}`}
-      className="inline-flex items-center gap-1.5 p-1.5 rounded-full text-xs font-medium border transition-all duration-300 select-none bg-theme-surface-subtle border-theme-border text-theme-fg"
+      className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-theme-border bg-theme-card transition-colors select-none"
+      title={`Watchlist: ${status}`}
     >
       {status === "synced" && (
         <>
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs" aria-hidden="true" title="Synced" />
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" aria-hidden="true" />
           <span className="sr-only">Synced</span>
         </>
       )}
 
       {status === "syncing" && (
         <>
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" aria-hidden="true" title="Syncing..." />
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" aria-hidden="true" />
           <span className="sr-only">Syncing...</span>
         </>
       )}
 
       {status === "offline" && (
         <>
-          <span className="w-2 h-2 rounded-full bg-zinc-500" aria-hidden="true" title="Offline" />
+          <span className="w-2.5 h-2.5 rounded-full bg-zinc-500" aria-hidden="true" />
           <span className="sr-only">Offline</span>
         </>
       )}
