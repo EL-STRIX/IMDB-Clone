@@ -1,0 +1,136 @@
+import { MovieProvider } from "./provider";
+import { Movie, MovieDetails, Person, Page } from "./types";
+import { tmdbFetch } from "./tmdbFetch";
+
+interface RawTmdbMovie {
+  id: number;
+  title: string;
+  poster_path: string | null;
+  vote_average: number;
+  release_date?: string;
+}
+
+interface RawTmdbMovieDetails {
+  id: number;
+  title: string;
+  poster_path: string | null;
+  overview: string;
+  release_date: string;
+  genres: { id: number; name: string }[];
+  runtime: number;
+  vote_average: number;
+}
+
+interface RawTmdbPerson {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  known_for_department?: string;
+  biography?: string;
+}
+
+interface RawTmdbPage<T> {
+  page: number;
+  results: T[];
+  total_pages: number;
+  total_results: number;
+}
+
+function mapRawMovie(raw: RawTmdbMovie): Movie {
+  return {
+    id: String(raw.id),
+    title: raw.title,
+    posterUrl: raw.poster_path
+      ? `https://image.tmdb.org/t/p/w500${raw.poster_path}`
+      : null,
+    rating: raw.vote_average || 0,
+    releaseDate: raw.release_date || "",
+    year: raw.release_date ? raw.release_date.split("-")[0] : "",
+  };
+}
+
+function mapRawMovieDetails(raw: RawTmdbMovieDetails): MovieDetails {
+  return {
+    id: String(raw.id),
+    title: raw.title,
+    posterUrl: raw.poster_path
+      ? `https://image.tmdb.org/t/p/w500${raw.poster_path}`
+      : null,
+    overview: raw.overview || "",
+    releaseDate: raw.release_date || "",
+    genres: raw.genres ? raw.genres.map((g) => g.name) : [],
+    runtime: raw.runtime || 0,
+    rating: raw.vote_average || 0,
+  };
+}
+
+function mapRawPerson(raw: RawTmdbPerson): Person {
+  return {
+    id: String(raw.id),
+    name: raw.name,
+    profileUrl: raw.profile_path
+      ? `https://image.tmdb.org/t/p/w500${raw.profile_path}`
+      : null,
+    knownFor: raw.known_for_department,
+    biography: raw.biography,
+  };
+}
+
+export class TmdbProvider implements MovieProvider {
+  private get apiKey(): string {
+    const key = process.env.TMDB_API_KEY;
+    if (!key) throw new Error("TMDB_API_KEY is not defined");
+    return key;
+  }
+
+  async getPopular(page = 1): Promise<Page<Movie>> {
+    const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
+      `/3/movie/popular?api_key=${this.apiKey}&language=en-US&page=${page}`
+    );
+    return {
+      items: (raw.results || []).map(mapRawMovie),
+      page: raw.page,
+      totalPages: raw.total_pages,
+      totalResults: raw.total_results,
+    };
+  }
+
+  async search(query: string, page = 1): Promise<Page<Movie>> {
+    if (!query.trim()) {
+      return { items: [], page: 1, totalPages: 0, totalResults: 0 };
+    }
+    const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
+      `/3/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(
+        query
+      )}&language=en-US&page=${page}`
+    );
+    return {
+      items: (raw.results || []).map(mapRawMovie),
+      page: raw.page,
+      totalPages: raw.total_pages,
+      totalResults: raw.total_results,
+    };
+  }
+
+  async getMovie(id: string): Promise<MovieDetails | null> {
+    try {
+      const raw = await tmdbFetch<RawTmdbMovieDetails>(
+        `/3/movie/${id}?api_key=${this.apiKey}&language=en-US`
+      );
+      return mapRawMovieDetails(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  async getPerson(id: string): Promise<Person | null> {
+    try {
+      const raw = await tmdbFetch<RawTmdbPerson>(
+        `/3/person/${id}?api_key=${this.apiKey}&language=en-US`
+      );
+      return mapRawPerson(raw);
+    } catch {
+      return null;
+    }
+  }
+}

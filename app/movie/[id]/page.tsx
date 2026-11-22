@@ -1,18 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { tmdbFetch } from "@/lib/api/tmdbFetch";
-
-interface MovieDetails {
-  id: number;
-  title: string;
-  poster_path: string | null;
-  overview: string;
-  release_date: string;
-  genres: { id: number; name: string }[];
-  runtime: number;
-  vote_average: number;
-}
+import { movieProvider } from "@/lib/api/provider";
+import { MovieDetails } from "@/lib/api/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,13 +10,8 @@ interface PageProps {
 
 async function getMovieDetails(id: string): Promise<MovieDetails | null> {
   "use cache";
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) return null;
-
   try {
-    return await tmdbFetch<MovieDetails>(
-      `/3/movie/${id}?api_key=${apiKey}&language=en-US`
-    );
+    return await movieProvider.getMovie(id);
   } catch (error) {
     console.error("Error fetching movie details:", error);
     return null;
@@ -47,10 +32,6 @@ export default async function MoviePage({ params }: PageProps) {
     ? `${hours > 0 ? `${hours}h ` : ""}${minutes}m`
     : "N/A";
 
-  const posterUrl = movie.poster_path
-    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-    : null;
-
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back to list link */}
@@ -66,9 +47,9 @@ export default async function MoviePage({ params }: PageProps) {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Movie Poster */}
         <div className="relative w-full md:w-72 aspect-[2/3] bg-zinc-800 rounded-lg overflow-hidden shrink-0">
-          {posterUrl ? (
+          {movie.posterUrl ? (
             <Image
-              src={posterUrl}
+              src={movie.posterUrl}
               alt={movie.title}
               fill
               priority
@@ -91,13 +72,13 @@ export default async function MoviePage({ params }: PageProps) {
 
             {/* Metadata (Release Date, Runtime, Rating) */}
             <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-              {movie.release_date && <span>{movie.release_date}</span>}
+              {movie.releaseDate && <span>{movie.releaseDate}</span>}
               {movie.runtime > 0 && <span>•</span>}
               {movie.runtime > 0 && <span>{runtimeFormatted}</span>}
-              {movie.vote_average > 0 && <span>•</span>}
-              {movie.vote_average > 0 && (
+              {movie.rating > 0 && <span>•</span>}
+              {movie.rating > 0 && (
                 <span className="text-[#f5c518] font-semibold flex items-center gap-1">
-                  ★ {movie.vote_average.toFixed(1)}
+                  ★ {movie.rating.toFixed(1)}
                 </span>
               )}
             </div>
@@ -108,10 +89,10 @@ export default async function MoviePage({ params }: PageProps) {
             <div className="flex flex-wrap gap-2">
               {movie.genres.map((genre) => (
                 <span
-                  key={genre.id}
+                  key={genre}
                   className="px-2.5 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700"
                 >
-                  {genre.name}
+                  {genre}
                 </span>
               ))}
             </div>
