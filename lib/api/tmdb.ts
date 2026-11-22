@@ -2,6 +2,7 @@ import { MovieProvider } from "./provider";
 import { Movie, MovieDetails, Person, CursorResult } from "./types";
 import { tmdbFetch } from "./tmdbFetch";
 import { encodeCursor, decodeCursor } from "./cursor";
+import { defaultCircuitBreaker } from "@/lib/resilience/circuitBreaker";
 
 interface RawTmdbMovie {
   id: number;
@@ -85,55 +86,70 @@ export class TmdbProvider implements MovieProvider {
   }
 
   async getPopular(cursor?: string): Promise<CursorResult<Movie>> {
-    const page = decodeCursor(cursor);
-    const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
-      `/3/movie/popular?api_key=${this.apiKey}&language=en-US&page=${page}`
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const page = decodeCursor(cursor);
+        const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
+          `/3/movie/popular?api_key=${this.apiKey}&language=en-US&page=${page}`
+        );
+        const hasNext = raw.page < raw.total_pages;
+        return {
+          items: (raw.results || []).map(mapRawMovie),
+          nextCursor: hasNext ? encodeCursor(raw.page + 1) : undefined,
+          totalResults: raw.total_results,
+        };
+      },
+      "popular"
     );
-    const hasNext = raw.page < raw.total_pages;
-    return {
-      items: (raw.results || []).map(mapRawMovie),
-      nextCursor: hasNext ? encodeCursor(raw.page + 1) : undefined,
-      totalResults: raw.total_results,
-    };
   }
 
   async search(query: string, cursor?: string): Promise<CursorResult<Movie>> {
     if (!query.trim()) {
       return { items: [], totalResults: 0 };
     }
-    const page = decodeCursor(cursor);
-    const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
-      `/3/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(
-        query
-      )}&language=en-US&page=${page}`
+    const cacheKey = `search:${query}:${cursor || "1"}`;
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const page = decodeCursor(cursor);
+        const raw = await tmdbFetch<RawTmdbPage<RawTmdbMovie>>(
+          `/3/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(
+            query
+          )}&language=en-US&page=${page}`
+        );
+        const hasNext = raw.page < raw.total_pages;
+        return {
+          items: (raw.results || []).map(mapRawMovie),
+          nextCursor: hasNext ? encodeCursor(raw.page + 1) : undefined,
+          totalResults: raw.total_results,
+        };
+      },
+      cacheKey
     );
-    const hasNext = raw.page < raw.total_pages;
-    return {
-      items: (raw.results || []).map(mapRawMovie),
-      nextCursor: hasNext ? encodeCursor(raw.page + 1) : undefined,
-      totalResults: raw.total_results,
-    };
   }
 
   async getMovie(id: string): Promise<MovieDetails | null> {
-    try {
-      const raw = await tmdbFetch<RawTmdbMovieDetails>(
-        `/3/movie/${id}?api_key=${this.apiKey}&language=en-US`
-      );
-      return mapRawMovieDetails(raw);
-    } catch {
-      return null;
-    }
+    const cacheKey = `movie:${id}`;
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const raw = await tmdbFetch<RawTmdbMovieDetails>(
+          `/3/movie/${id}?api_key=${this.apiKey}&language=en-US`
+        );
+        return mapRawMovieDetails(raw);
+      },
+      cacheKey
+    ).catch(() => null);
   }
 
   async getPerson(id: string): Promise<Person | null> {
-    try {
-      const raw = await tmdbFetch<RawTmdbPerson>(
-        `/3/person/${id}?api_key=${this.apiKey}&language=en-US`
-      );
-      return mapRawPerson(raw);
-    } catch {
-      return null;
-    }
+    const cacheKey = `person:${id}`;
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const raw = await tmdbFetch<RawTmdbPerson>(
+          `/3/person/${id}?api_key=${this.apiKey}&language=en-US`
+        );
+        return mapRawPerson(raw);
+      },
+      cacheKey
+    ).catch(() => null);
   }
 }
