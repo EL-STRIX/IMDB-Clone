@@ -12,6 +12,8 @@ export const WatchlistItemSchema = z.object({
   rating: z.number().min(0).max(10).optional(),
   year: z.string().optional(),
   notes: z.string().max(1000, "Notes cannot exceed 1000 characters").optional(),
+  watched: z.boolean().optional(),
+  customOrder: z.number().optional(),
 });
 
 export type WatchlistItem = z.infer<typeof WatchlistItemSchema>;
