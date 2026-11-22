@@ -157,6 +157,8 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
         updatedAt: new Date().toISOString(),
         helpfulVotes: 0,
         totalVotes: 0,
+        upvotes: 0,
+        downvotes: 0,
         deletedAt: null,
         isOptimistic: true,
       };

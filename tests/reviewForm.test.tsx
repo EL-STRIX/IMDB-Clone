@@ -202,6 +202,8 @@ describe("ReviewForm & Optimistic Submission (Day 43)", () => {
       updatedAt: new Date().toISOString(),
       helpfulVotes: 0,
       totalVotes: 0,
+      upvotes: 0,
+      downvotes: 0,
       deletedAt: null,
     };
 

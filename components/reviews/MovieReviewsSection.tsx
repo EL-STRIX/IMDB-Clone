@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import ReviewForm from "./ReviewForm";
+import ReviewVoteButtons from "./ReviewVoteButtons";
 import { Review } from "@/lib/reviews/schema";
+import { sortReviews, ReviewSortOption } from "@/lib/reviews/ranking";
 
 interface MovieReviewsSectionProps {
   movieId: string;
@@ -14,8 +16,9 @@ const EMPTY_REVIEWS: (Review & { isOptimistic?: boolean })[] = [];
 
 export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProps) {
   const [unmaskedSpoilers, setUnmaskedSpoilers] = useState<Record<string, boolean>>({});
+  const [sortBy, setSortBy] = useState<ReviewSortOption>("helpful");
 
-  const { data: reviews = EMPTY_REVIEWS, isLoading } = useQuery<(Review & { isOptimistic?: boolean })[]>({
+  const { data: rawReviews = EMPTY_REVIEWS, isLoading } = useQuery<(Review & { isOptimistic?: boolean })[]>({
     queryKey: ["movie-reviews", movieId],
     queryFn: async () => {
       const res = await fetch(`/api/movies/${movieId}/reviews`);
@@ -25,13 +28,18 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
     },
   });
 
+  // Apply ranking strategy (Helpful via Wilson score, Recent, or Controversial)
+  const reviews = useMemo(() => {
+    return sortReviews(rawReviews, sortBy);
+  }, [rawReviews, sortBy]);
+
   const toggleSpoiler = (id: string) => {
     setUnmaskedSpoilers((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
     <section aria-labelledby="user-reviews-heading" className="mt-12 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-theme-border/60 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-theme-border/60 pb-4">
         <div>
           <h2 id="user-reviews-heading" className="text-xl sm:text-2xl font-extrabold text-theme-fg">
             User Reviews
@@ -40,12 +48,31 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
             Real verdicts from verified critics and community cinephiles.
           </p>
         </div>
-        <span className="text-xs font-mono text-theme-fg-muted self-start sm:self-auto">
-          {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
-        </span>
+
+        {/* Sort Controls & Count */}
+        <div className="flex items-center gap-3">
+          <label htmlFor="reviews-sort-by" className="text-xs text-theme-fg-muted sr-only">
+            Sort reviews by
+          </label>
+          <select
+            id="reviews-sort-by"
+            aria-label="Sort reviews by"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as ReviewSortOption)}
+            className="text-xs px-3 py-1.5 rounded-xl bg-theme-surface-subtle border border-theme-border text-theme-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer"
+          >
+            <option value="helpful">Most Helpful (Wilson Score)</option>
+            <option value="recent">Most Recent</option>
+            <option value="controversial">Most Controversial</option>
+          </select>
+
+          <span className="text-xs font-mono text-theme-fg-muted">
+            {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+          </span>
+        </div>
       </div>
 
-      {/* Interactive Review Submission Form with Optimistic UI */}
+      {/* Interactive Review Submission Form with Optimistic UI & Autosave */}
       <ReviewForm movieId={movieId} />
 
       {/* Reviews List */}
@@ -130,7 +157,7 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
 
                 {/* Spoiler Masking */}
                 {hasSpoiler ? (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between">
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between mb-3">
                     <span>⚠️ Warning: This review contains spoilers.</span>
                     <button
                       type="button"
@@ -141,10 +168,13 @@ export default function MovieReviewsSection({ movieId }: MovieReviewsSectionProp
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs sm:text-sm text-theme-fg/80 leading-relaxed whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-theme-fg/80 leading-relaxed whitespace-pre-line mb-3">
                     {rev.content}
                   </p>
                 )}
+
+                {/* Vote Buttons & Helpfulness Counters */}
+                <ReviewVoteButtons review={rev} movieId={movieId} />
               </article>
             );
           })}

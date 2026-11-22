@@ -68,6 +68,10 @@ export const ReviewSchema = z.object({
   updatedAt: z.string(),
   helpfulVotes: z.number().default(0),
   totalVotes: z.number().default(0),
+  upvotes: z.number().default(0),
+  downvotes: z.number().default(0),
+  userVote: z.enum(["up", "down"]).nullable().optional(),
+  isOptimistic: z.boolean().optional(),
   deletedAt: z.string().nullable().optional(),
 });
 

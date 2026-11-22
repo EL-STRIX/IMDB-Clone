@@ -4,6 +4,7 @@ import { User } from "@/lib/auth/types";
 class ReviewsStore {
   private reviews = new Map<string, Review>();
   private processedIdempotencyKeys = new Map<string, Review>();
+  private userVotes = new Map<string, "up" | "down">(); // key: `${reviewId}_${userId}`
 
   constructor() {
     this.seedDefaults();
@@ -12,6 +13,7 @@ class ReviewsStore {
   seedDefaults(): void {
     this.reviews.clear();
     this.processedIdempotencyKeys.clear();
+    this.userVotes.clear();
 
     const sampleReview: Review = {
       id: "rev-sample-1",
@@ -26,6 +28,8 @@ class ReviewsStore {
       spoiler: false,
       createdAt: "2026-01-15T14:30:00.000Z",
       updatedAt: "2026-01-15T14:30:00.000Z",
+      upvotes: 42,
+      downvotes: 3,
       helpfulVotes: 42,
       totalVotes: 45,
       deletedAt: null,
@@ -35,30 +39,97 @@ class ReviewsStore {
   }
 
   /**
-   * Retrieves all non-deleted reviews for a given movie.
+   * Retrieves all non-deleted reviews for a given movie, optionally injecting current user's vote.
    */
-  listByMovie(movieId: string): Review[] {
+  listByMovie(movieId: string, currentUserId?: string): Review[] {
     return Array.from(this.reviews.values())
       .filter((r) => r.movieId === movieId && !r.deletedAt)
+      .map((r) => {
+        if (!currentUserId) return r;
+        const userVote = this.getUserVote(r.id, currentUserId);
+        return { ...r, userVote };
+      })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   /**
    * Retrieves a single review by ID.
    */
-  getById(reviewId: string): Review | null {
+  getById(reviewId: string, currentUserId?: string): Review | null {
     const review = this.reviews.get(reviewId);
     if (!review || review.deletedAt) {
       return null;
     }
-    return review;
+    if (!currentUserId) return review;
+    return { ...review, userVote: this.getUserVote(reviewId, currentUserId) };
+  }
+
+  /**
+   * Gets an existing user vote on a review.
+   */
+  getUserVote(reviewId: string, userId: string): "up" | "down" | null {
+    return this.userVotes.get(`${reviewId}_${userId}`) || null;
+  }
+
+  /**
+   * Casts, switches, or toggles an upvote/downvote on a review.
+   */
+  vote(
+    reviewId: string,
+    userId: string,
+    targetVote: "up" | "down" | "none"
+  ): { status: "success"; review: Review; userVote: "up" | "down" | null } | { status: "not_found" } {
+    const existing = this.reviews.get(reviewId);
+    if (!existing || existing.deletedAt) {
+      return { status: "not_found" };
+    }
+
+    const voteKey = `${reviewId}_${userId}`;
+    const previousVote = this.userVotes.get(voteKey) || null;
+
+    let upvotes = existing.upvotes ?? existing.helpfulVotes ?? 0;
+    let downvotes = existing.downvotes ?? 0;
+    let newVote: "up" | "down" | null = null;
+
+    // Toggle off if same vote clicked or "none" requested
+    if (targetVote === previousVote || targetVote === "none") {
+      if (previousVote === "up") upvotes -= 1;
+      if (previousVote === "down") downvotes -= 1;
+      this.userVotes.delete(voteKey);
+      newVote = null;
+    } else if (targetVote === "up") {
+      if (previousVote === "down") downvotes -= 1;
+      upvotes += 1;
+      this.userVotes.set(voteKey, "up");
+      newVote = "up";
+    } else if (targetVote === "down") {
+      if (previousVote === "up") upvotes -= 1;
+      downvotes += 1;
+      this.userVotes.set(voteKey, "down");
+      newVote = "down";
+    }
+
+    upvotes = Math.max(0, upvotes);
+    downvotes = Math.max(0, downvotes);
+
+    const updated: Review = {
+      ...existing,
+      upvotes,
+      downvotes,
+      helpfulVotes: upvotes,
+      totalVotes: upvotes + downvotes,
+      userVote: newVote,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.reviews.set(reviewId, updated);
+    return { status: "success", review: updated, userVote: newVote };
   }
 
   /**
    * Creates a new review with author and idempotency protection.
    */
   create(movieId: string, author: User, input: CreateReviewInput): { review: Review; isDuplicate: boolean } {
-    // Idempotency key check
     if (input.idempotencyKey && this.processedIdempotencyKeys.has(input.idempotencyKey)) {
       return {
         review: this.processedIdempotencyKeys.get(input.idempotencyKey)!,
@@ -82,6 +153,8 @@ class ReviewsStore {
       spoiler: !!input.spoiler,
       createdAt: now,
       updatedAt: now,
+      upvotes: 0,
+      downvotes: 0,
       helpfulVotes: 0,
       totalVotes: 0,
       deletedAt: null,
@@ -109,7 +182,6 @@ class ReviewsStore {
       return { status: "not_found" };
     }
 
-    // Authorization check
     if (existing.authorId !== author.id && author.role !== "admin") {
       return { status: "forbidden" };
     }
@@ -139,7 +211,6 @@ class ReviewsStore {
       return { status: "not_found" };
     }
 
-    // Authorization check
     if (existing.authorId !== author.id && author.role !== "admin") {
       return { status: "forbidden" };
     }
@@ -173,6 +244,7 @@ class ReviewsStore {
   clear(): void {
     this.reviews.clear();
     this.processedIdempotencyKeys.clear();
+    this.userVotes.clear();
   }
 }
 
