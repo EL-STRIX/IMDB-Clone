@@ -39,7 +39,7 @@ export default async function MoviePage({ params }: PageProps) {
       <div className="mb-6">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-[#f5c518] transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-theme-fg/70 hover:text-theme-primary transition-colors"
         >
           <span>&larr; Back to list</span>
         </Link>
@@ -47,7 +47,7 @@ export default async function MoviePage({ params }: PageProps) {
 
       <div className="flex flex-col md:flex-row gap-8">
         {/* Movie Poster */}
-        <div className="relative w-full md:w-72 aspect-[2/3] bg-zinc-800 rounded-lg overflow-hidden shrink-0">
+        <div className="relative w-full md:w-72 aspect-[2/3] bg-theme-card border border-theme-border rounded-lg overflow-hidden shrink-0">
           {movie.posterUrl ? (
             <Image
               src={movie.posterUrl}
@@ -58,7 +58,7 @@ export default async function MoviePage({ params }: PageProps) {
               className="object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-zinc-500 text-sm">
+            <div className="flex h-full items-center justify-center text-theme-fg/40 text-sm">
               No Poster Available
             </div>
           )}
@@ -67,18 +67,18 @@ export default async function MoviePage({ params }: PageProps) {
         {/* Movie Details */}
         <div className="flex-1 flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+            <h1 className="text-3xl sm:text-4xl font-bold text-theme-fg mb-2">
               {movie.title}
             </h1>
 
             {/* Metadata (Release Date, Runtime, TMDb Rating) */}
-            <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-theme-fg/70">
               {movie.releaseDate && <span>{movie.releaseDate}</span>}
               {movie.runtime > 0 && <span>•</span>}
               {movie.runtime > 0 && <span>{runtimeFormatted}</span>}
               {movie.rating > 0 && <span>•</span>}
               {movie.rating > 0 && (
-                <span className="text-[#f5c518] font-semibold flex items-center gap-1">
+                <span className="text-theme-primary font-semibold flex items-center gap-1">
                   ★ {movie.rating.toFixed(1)}
                 </span>
               )}
@@ -99,7 +99,7 @@ export default async function MoviePage({ params }: PageProps) {
               {movie.genres.map((genre) => (
                 <span
                   key={genre}
-                  className="px-2.5 py-1 text-xs font-medium rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700"
+                  className="px-2.5 py-1 text-xs font-medium rounded-full bg-theme-card text-theme-fg/90 border border-theme-border"
                 >
                   {genre}
                 </span>
@@ -109,10 +109,10 @@ export default async function MoviePage({ params }: PageProps) {
 
           {/* Overview */}
           <div>
-            <h2 className="text-base font-semibold text-zinc-200 mb-1">
+            <h2 className="text-base font-semibold text-theme-fg mb-1">
               Overview
             </h2>
-            <p className="text-zinc-300 leading-relaxed text-sm sm:text-base">
+            <p className="text-theme-fg/80 leading-relaxed text-sm sm:text-base">
               {movie.overview || "No overview available."}
             </p>
           </div>

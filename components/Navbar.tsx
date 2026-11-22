@@ -2,26 +2,26 @@ import Link from "next/link";
 
 export default function Navbar() {
   return (
-    <header className="sticky top-0 z-50 bg-[#121212] border-b border-zinc-800 text-white">
+    <header className="sticky top-0 z-50 bg-theme-header border-b border-theme-border text-theme-fg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex items-center gap-6">
           <Link
             href="/"
-            className="bg-[#f5c518] text-black font-black text-xl px-2.5 py-0.5 rounded tracking-tight hover:opacity-95 transition-opacity"
+            className="bg-theme-primary text-black font-black text-xl px-2.5 py-0.5 rounded tracking-tight hover:opacity-95 transition-opacity"
           >
             IMDb
           </Link>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-zinc-300">
-            <Link href="/" className="hover:text-white transition-colors">
+          <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-theme-fg/80">
+            <Link href="/" className="hover:text-theme-fg transition-colors">
               Movies
             </Link>
-            <Link href="#" className="hover:text-white transition-colors">
+            <Link href="#" className="hover:text-theme-fg transition-colors">
               TV Shows
             </Link>
-            <Link href="#" className="hover:text-white transition-colors">
+            <Link href="#" className="hover:text-theme-fg transition-colors">
               Watchlist
             </Link>
           </nav>
@@ -35,12 +35,12 @@ export default function Navbar() {
               name="query"
               placeholder="Search IMDb..."
               required
-              className="w-full bg-[#1f1f1f] border border-zinc-700 text-white placeholder-zinc-400 text-sm rounded-md px-3 py-2 pl-9 focus:outline-none focus:border-zinc-500"
+              className="w-full bg-theme-card border border-theme-border text-theme-fg placeholder:text-theme-fg/50 text-sm rounded-md px-3 py-2 pl-9 focus:outline-none focus:ring-1 focus:ring-theme-ring"
             />
             <button
               type="submit"
               aria-label="Search"
-              className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 hover:text-white cursor-pointer"
+              className="absolute left-3 top-2.5 h-4 w-4 text-theme-fg/60 hover:text-theme-fg cursor-pointer"
             >
               <svg
                 className="h-4 w-4"
@@ -60,8 +60,8 @@ export default function Navbar() {
         </div>
 
         {/* Right side nav / actions */}
-        <div className="flex items-center gap-4 text-sm font-medium text-zinc-300">
-          <Link href="#" className="hover:text-white transition-colors hidden sm:inline-block">
+        <div className="flex items-center gap-4 text-sm font-medium text-theme-fg/80">
+          <Link href="#" className="hover:text-theme-fg transition-colors hidden sm:inline-block">
             Sign In
           </Link>
         </div>
