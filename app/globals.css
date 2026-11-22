@@ -4,9 +4,13 @@
 [data-theme="dark"] {
   --bg: 0 0% 0%;
   --fg: 0 0% 98%;
+  --fg-muted: 0 0% 65%;
   --card: 0 0% 10%;
+  --surface: 0 0% 12%;
+  --surface-subtle: 0 0% 16%;
   --header: 0 0% 7%;
   --primary: 45 93% 47%;
+  --accent: 45 93% 47%;
   --border: 0 0% 18%;
   --ring: 45 93% 47%;
 }
@@ -14,9 +18,13 @@
 [data-theme="light"] {
   --bg: 0 0% 98%;
   --fg: 0 0% 10%;
+  --fg-muted: 0 0% 40%;
   --card: 0 0% 100%;
+  --surface: 0 0% 100%;
+  --surface-subtle: 0 0% 93%;
   --header: 0 0% 94%;
   --primary: 45 93% 47%;
+  --accent: 45 93% 47%;
   --border: 0 0% 85%;
   --ring: 45 93% 47%;
 }
@@ -24,9 +32,13 @@
 [data-theme="hc"] {
   --bg: 0 0% 0%;
   --fg: 0 0% 100%;
+  --fg-muted: 0 0% 85%;
   --card: 0 0% 0%;
+  --surface: 0 0% 5%;
+  --surface-subtle: 0 0% 15%;
   --header: 0 0% 0%;
   --primary: 60 100% 50%;
+  --accent: 60 100% 50%;
   --border: 0 0% 100%;
   --ring: 60 100% 50%;
 }
@@ -34,9 +46,13 @@
 @theme {
   --color-theme-bg: hsl(var(--bg));
   --color-theme-fg: hsl(var(--fg));
+  --color-theme-fg-muted: hsl(var(--fg-muted));
   --color-theme-card: hsl(var(--card));
+  --color-theme-surface: hsl(var(--surface));
+  --color-theme-surface-subtle: hsl(var(--surface-subtle));
   --color-theme-header: hsl(var(--header));
   --color-theme-primary: hsl(var(--primary));
+  --color-theme-accent: hsl(var(--accent));
   --color-theme-border: hsl(var(--border));
   --color-theme-ring: hsl(var(--ring));
 }

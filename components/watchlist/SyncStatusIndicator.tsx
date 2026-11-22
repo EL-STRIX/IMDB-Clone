@@ -61,26 +61,26 @@ export default function SyncStatusIndicator() {
       role="status"
       aria-live="polite"
       aria-label={`Watchlist sync status: ${status}`}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-300 select-none bg-theme-surface-subtle border-theme-border text-theme-fg"
+      className="inline-flex items-center gap-1.5 p-1.5 rounded-full text-xs font-medium border transition-all duration-300 select-none bg-theme-surface-subtle border-theme-border text-theme-fg"
     >
       {status === "synced" && (
         <>
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs" aria-hidden="true" />
-          <span className="text-[11px] font-semibold text-emerald-400">Synced</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs" aria-hidden="true" title="Synced" />
+          <span className="sr-only">Synced</span>
         </>
       )}
 
       {status === "syncing" && (
         <>
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" aria-hidden="true" />
-          <span className="text-[11px] font-semibold text-amber-300">Syncing...</span>
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" aria-hidden="true" title="Syncing..." />
+          <span className="sr-only">Syncing...</span>
         </>
       )}
 
       {status === "offline" && (
         <>
-          <span className="w-2 h-2 rounded-full bg-zinc-500" aria-hidden="true" />
-          <span className="text-[11px] font-semibold text-theme-fg-muted">Offline</span>
+          <span className="w-2 h-2 rounded-full bg-zinc-500" aria-hidden="true" title="Offline" />
+          <span className="sr-only">Offline</span>
         </>
       )}
     </div>
