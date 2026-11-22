@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { OmdbProvider } from "@/lib/api/omdb";
 
 interface OmdbRatingsProps {
@@ -16,6 +17,11 @@ export function RatingsSkeleton() {
 }
 
 export default async function OmdbRatingsStream({ title, year }: OmdbRatingsProps) {
+  try {
+    await connection();
+  } catch {
+    // Graceful fallback for non-request environments
+  }
   const omdb = new OmdbProvider();
   let details = null;
 

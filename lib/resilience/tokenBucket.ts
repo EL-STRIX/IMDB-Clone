@@ -8,11 +8,11 @@ export class TokenBucket {
     this.capacity = capacity;
     this.refillPerSecond = refillPerSecond;
     this.tokens = capacity;
-    this.lastRefill = Date.now();
+    this.lastRefill = typeof performance !== "undefined" ? performance.now() : Date.now();
   }
 
   private refill(): void {
-    const now = Date.now();
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const elapsedSeconds = (now - this.lastRefill) / 1000;
     this.tokens = Math.min(this.capacity, this.tokens + elapsedSeconds * this.refillPerSecond);
     this.lastRefill = now;

@@ -28,7 +28,8 @@ export class CircuitBreaker {
   }
 
   getState(): CircuitState {
-    if (this.state === "OPEN" && Date.now() >= this.nextAttempt) {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (this.state === "OPEN" && now >= this.nextAttempt) {
       this.state = "HALF_OPEN";
     }
     return this.state;
@@ -51,7 +52,8 @@ export class CircuitBreaker {
     this.failureCount++;
     if (this.failureCount >= this.failureThreshold || this.state === "HALF_OPEN") {
       this.state = "OPEN";
-      this.nextAttempt = Date.now() + this.cooldownMs;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      this.nextAttempt = now + this.cooldownMs;
     }
   }
 
