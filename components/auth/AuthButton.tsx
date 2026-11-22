@@ -79,19 +79,19 @@ export default function AuthButton() {
           className="flex items-center gap-2 h-9 px-2.5 rounded-lg bg-theme-card border border-theme-border hover:border-theme-primary/50 text-theme-fg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring cursor-pointer"
         >
           {user.image && !imageError ? (
-            <div className="relative w-6 h-6 rounded-full overflow-hidden border border-theme-border shrink-0 bg-theme-surface-subtle">
+            <div className="relative w-7 h-7 rounded-full overflow-hidden border border-theme-border shrink-0 bg-theme-surface-subtle">
               <Image
                 src={user.image}
                 alt={user.name}
                 fill
-                sizes="24px"
+                sizes="28px"
                 unoptimized
                 onError={() => setImageError(true)}
                 className="object-cover"
               />
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-full bg-theme-primary text-black font-extrabold text-xs flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-full bg-theme-primary text-black font-extrabold text-xs flex items-center justify-center shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
           )}

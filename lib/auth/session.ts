@@ -13,14 +13,14 @@ export const DEMO_USERS: Record<string, User> = {
     id: "usr-critic-101",
     name: "Eleanor Vance (Top Critic)",
     email: "eleanor.vance@variety-reviews.com",
-    image: "https://ui-avatars.com/api/?name=Eleanor+Vance&background=f5c518&color=000&bold=true",
+    image: "/avatars/critic.svg",
     role: "critic",
   },
   cinephile: {
     id: "usr-cinephile-202",
     name: "Alex Rivera",
     email: "alex.rivera@imdb-fan.org",
-    image: "https://ui-avatars.com/api/?name=Alex+Rivera&background=10b981&color=fff&bold=true",
+    image: "/avatars/cinephile.svg",
     role: "user",
   },
 };

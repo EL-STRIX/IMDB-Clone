@@ -23,9 +23,18 @@ export async function GET(req: NextRequest) {
     return response;
   }
 
+  const user = { ...session.user };
+  if (user.id === "usr-critic-101") {
+    user.image = "/avatars/critic.svg";
+  } else if (user.id === "usr-cinephile-202") {
+    user.image = "/avatars/cinephile.svg";
+  } else if (!user.image) {
+    user.image = "/avatars/default.svg";
+  }
+
   return NextResponse.json({
     authenticated: true,
-    user: session.user,
+    user,
     expiresAt: session.expiresAt,
   });
 }

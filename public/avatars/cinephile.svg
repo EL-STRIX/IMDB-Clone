@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bgCinephile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14532d"/>
+      <stop offset="100%" stop-color="#052e16"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="60" fill="url(#bgCinephile)"/>
+  <circle cx="60" cy="60" r="58" fill="none" stroke="#22c55e" stroke-width="3" stroke-opacity="0.8"/>
+  <path d="M36 50 C36 28, 84 28, 84 50 C84 65, 80 85, 80 85 L40 85 Z" fill="#1e293b"/>
+  <ellipse cx="60" cy="58" rx="22" ry="24" fill="#fed7aa"/>
+  <path d="M38 46 C45 28, 75 28, 82 46 C75 36, 68 34, 60 36 C52 34, 45 36, 38 46 Z" fill="#0f172a"/>
+  <rect x="43" y="49" width="16" height="13" rx="3" fill="#ef4444" opacity="0.9" stroke="#ffffff" stroke-width="2.5"/>
+  <rect x="61" y="49" width="16" height="13" rx="3" fill="#06b6d4" opacity="0.9" stroke="#ffffff" stroke-width="2.5"/>
+  <line x1="59" y1="54" x2="61" y2="54" stroke="#ffffff" stroke-width="3"/>
+  <path d="M52 68 Q60 76 68 68" fill="none" stroke="#9a3412" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="53" y="79" width="14" height="12" fill="#fed7aa"/>
+  <path d="M30 110 C30 90, 48 86, 60 86 C72 86, 90 90, 90 110 Z" fill="#1e3a8a"/>
+  <circle cx="60" cy="94" r="3" fill="#f5c518"/>
+  <circle cx="95" cy="25" r="14" fill="#0f172a" stroke="#22c55e" stroke-width="2"/>
+  <text x="95" y="30" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#ffffff">🎬</text>
+</svg>
