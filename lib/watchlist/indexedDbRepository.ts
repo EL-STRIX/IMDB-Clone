@@ -8,10 +8,12 @@ import {
   UpdateWatchlistItemSchema,
 } from "./schema";
 import { WatchlistRepository } from "./repository";
+import { enqueueMutation, flushMutationQueue } from "./mutationQueue";
 
 const DB_NAME = "imdb-watchlist-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "watchlist";
+const MUTATIONS_STORE = "pendingMutations";
 
 export class IndexedDbRepository implements WatchlistRepository {
   private dbPromise: Promise<IDBPDatabase> | null = null;
@@ -21,16 +23,28 @@ export class IndexedDbRepository implements WatchlistRepository {
   private async getDb(): Promise<IDBPDatabase> {
     if (!this.dbPromise) {
       const storeName = STORE_NAME;
+      const mutationStoreName = MUTATIONS_STORE;
+
       this.dbPromise = openDB(this.customDbName, DB_VERSION, {
         upgrade(db) {
           if (!db.objectStoreNames.contains(storeName)) {
             const store = db.createObjectStore(storeName, { keyPath: "id" });
             store.createIndex("addedAt", "addedAt");
           }
+          if (!db.objectStoreNames.contains(mutationStoreName)) {
+            const mStore = db.createObjectStore(mutationStoreName, { keyPath: "id" });
+            mStore.createIndex("timestamp", "timestamp");
+          }
         },
       });
     }
     return this.dbPromise;
+  }
+
+  private triggerBackgroundSync() {
+    if (typeof navigator !== "undefined" && navigator.onLine) {
+      flushMutationQueue("/api/watchlist/sync", this.customDbName).catch(() => {});
+    }
   }
 
   async add(input: AddWatchlistItemInput): Promise<WatchlistItem> {
@@ -44,6 +58,19 @@ export class IndexedDbRepository implements WatchlistRepository {
     const validatedItem = WatchlistItemSchema.parse(item);
     const db = await this.getDb();
     await db.put(STORE_NAME, validatedItem);
+
+    // Enqueue mutation for sync
+    await enqueueMutation(
+      {
+        type: "add",
+        movieId: validatedItem.id,
+        item: validatedItem,
+        timestamp: Date.now(),
+      },
+      this.customDbName
+    );
+
+    this.triggerBackgroundSync();
     return validatedItem;
   }
 
@@ -59,6 +86,18 @@ export class IndexedDbRepository implements WatchlistRepository {
     }
 
     await db.delete(STORE_NAME, id);
+
+    // Enqueue mutation for sync
+    await enqueueMutation(
+      {
+        type: "remove",
+        movieId: id,
+        timestamp: Date.now(),
+      },
+      this.customDbName
+    );
+
+    this.triggerBackgroundSync();
     return true;
   }
 
@@ -92,6 +131,19 @@ export class IndexedDbRepository implements WatchlistRepository {
 
     const validatedItem = WatchlistItemSchema.parse(updatedItem);
     await db.put(STORE_NAME, validatedItem);
+
+    // Enqueue mutation for sync
+    await enqueueMutation(
+      {
+        type: "update",
+        movieId: id,
+        patch: validatedPatch,
+        timestamp: Date.now(),
+      },
+      this.customDbName
+    );
+
+    this.triggerBackgroundSync();
     return validatedItem;
   }
 
