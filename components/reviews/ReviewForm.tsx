@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/components/auth/SessionProvider";
 import { CreateReviewSchema, Review } from "@/lib/reviews/schema";
+import { reviewDraftStore } from "@/lib/reviews/draftStore";
 import { showToast } from "@/components/watchlist/Toast";
 
 interface ReviewFormProps {
@@ -21,6 +22,92 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
   const [spoiler, setSpoiler] = useState<boolean>(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  // Draft autosave states
+  const [draftRestored, setDraftRestored] = useState<boolean>(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
+
+  // 1. Check and restore existing draft on page load
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadDraft() {
+      try {
+        const draft = await reviewDraftStore.getDraft(movieId);
+        if (!isCancelled && draft && (draft.title.trim() || draft.content.trim())) {
+          setTitle(draft.title);
+          setContent(draft.content);
+          setRating(draft.rating);
+          setSpoiler(draft.spoiler);
+          setDraftRestored(true);
+          setIsOpen(true);
+          setLastSavedTime(
+            new Date(draft.savedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          );
+        }
+      } catch {
+        // Ignore draft loading failure
+      }
+    }
+
+    loadDraft();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [movieId]);
+
+  // 2. Debounced autosave to IndexedDB every time inputs change
+  useEffect(() => {
+    // Avoid saving on initial component mount before draft load completes
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // Only save if there is content or title
+    if (!title.trim() && !content.trim()) {
+      return;
+    }
+
+    setAutosaveStatus("saving");
+
+    const timer = setTimeout(async () => {
+      try {
+        await reviewDraftStore.saveDraft({
+          movieId,
+          rating,
+          title,
+          content,
+          spoiler,
+        });
+        setAutosaveStatus("saved");
+        setLastSavedTime(
+          new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        );
+      } catch {
+        setAutosaveStatus("idle");
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [movieId, rating, title, content, spoiler]);
+
+  // Handle discarding an existing draft
+  const handleDiscardDraft = async () => {
+    await reviewDraftStore.clearDraft(movieId);
+    setTitle("");
+    setContent("");
+    setRating(8);
+    setSpoiler(false);
+    setDraftRestored(false);
+    setAutosaveStatus("idle");
+    setLastSavedTime(null);
+    setIsOpen(false);
+    showToast({ message: "Draft discarded." });
+  };
 
   // Optimistic Mutation using TanStack Query
   const mutation = useMutation({
@@ -89,7 +176,10 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
       }
       showToast({ message: err.message || "Failed to submit review. Rolled back." });
     },
-    onSuccess: (confirmedReview, _variables, context) => {
+    onSuccess: async (confirmedReview, _variables, context) => {
+      // Clear autosaved draft on successful post
+      await reviewDraftStore.clearDraft(movieId);
+
       // Reconcile temporary optimistic review with confirmed server response
       queryClient.setQueryData<Review[]>(["movie-reviews", movieId], (old = []) =>
         old.map((r) => (r.id === context?.tempId ? confirmedReview : r))
@@ -97,12 +187,15 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
 
       showToast({ message: "Review posted successfully!" });
 
-      // Reset form
+      // Reset form & draft state
       setTitle("");
       setContent("");
       setRating(8);
       setSpoiler(false);
       setFieldErrors({});
+      setDraftRestored(false);
+      setAutosaveStatus("idle");
+      setLastSavedTime(null);
       setIsOpen(false);
 
       if (onSuccess) onSuccess();
@@ -183,12 +276,32 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
       aria-label="Write a movie review"
       className="p-5 rounded-2xl bg-theme-surface border border-theme-border shadow-md space-y-4"
     >
+      {/* Draft Restored Banner */}
+      {draftRestored && (
+        <div
+          role="status"
+          className="p-3 rounded-xl bg-theme-surface-subtle border border-theme-primary/30 flex items-center justify-between gap-2 text-xs"
+        >
+          <span className="text-theme-fg flex items-center gap-1.5">
+            <span className="text-amber-400">💾</span>
+            <span>Restored unsaved draft {lastSavedTime ? `from ${lastSavedTime}` : ""}</span>
+          </span>
+          <button
+            type="button"
+            onClick={handleDiscardDraft}
+            className="text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer"
+          >
+            Discard Draft
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-b border-theme-border/60 pb-3">
         <h3 className="text-base font-extrabold text-theme-fg">Write a Review</h3>
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          className="text-xs text-theme-fg-muted hover:text-theme-fg transition-colors"
+          className="text-xs text-theme-fg-muted hover:text-theme-fg transition-colors cursor-pointer"
         >
           Cancel
         </button>
@@ -277,22 +390,36 @@ export default function ReviewForm({ movieId, onSuccess }: ReviewFormProps) {
         </label>
       </div>
 
-      {/* Form Submission Action Buttons */}
-      <div className="flex items-center justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => setIsOpen(false)}
-          className="px-4 py-2 rounded-xl text-xs font-semibold text-theme-fg-muted hover:text-theme-fg transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={mutation.isPending}
-          className="px-5 py-2 rounded-xl text-xs font-bold bg-theme-accent text-zinc-950 hover:opacity-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring disabled:opacity-50 cursor-pointer"
-        >
-          {mutation.isPending ? "Submitting..." : "Submit Review"}
-        </button>
+      {/* Form Footer: Autosave Status Indicator & Submit Action Buttons */}
+      <div className="flex items-center justify-between pt-2 border-t border-theme-border/60">
+        <div className="text-[11px] text-theme-fg-muted flex items-center gap-1.5 font-mono">
+          {autosaveStatus === "saving" && (
+            <span className="text-amber-400 animate-pulse">● Autosaving draft...</span>
+          )}
+          {autosaveStatus === "saved" && (
+            <span className="text-emerald-400">✓ Draft saved {lastSavedTime ? `at ${lastSavedTime}` : ""}</span>
+          )}
+          {autosaveStatus === "idle" && lastSavedTime && (
+            <span>Saved {lastSavedTime}</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDiscardDraft}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
+          >
+            Discard
+          </button>
+          <button
+            type="submit"
+            disabled={mutation.isPending}
+            className="px-5 py-2 rounded-xl text-xs font-bold bg-theme-accent text-zinc-950 hover:opacity-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-ring disabled:opacity-50 cursor-pointer"
+          >
+            {mutation.isPending ? "Submitting..." : "Submit Review"}
+          </button>
+        </div>
       </div>
     </form>
   );
