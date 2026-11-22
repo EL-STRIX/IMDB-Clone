@@ -16,7 +16,9 @@ test.describe("Offline Watchlist E2E Workflows (Day 40)", () => {
     const watchlistBtn = page.getByRole("button", { name: /Add .* to watchlist/i });
     if (await watchlistBtn.isVisible()) {
       await watchlistBtn.click();
-      await expect(page.getByRole("button", { name: /In Watchlist/i })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Remove .* from watchlist/i })
+      ).toBeVisible();
     }
 
     // Navigate to watchlist page
