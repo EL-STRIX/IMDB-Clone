@@ -1,5 +1,5 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, Review, CursorResult } from "./types";
 import { encodeCursor, decodeCursor } from "./cursor";
 import { defaultRateLimiter } from "@/lib/resilience/tokenBucket";
 import { withRetry } from "@/lib/resilience/retry";
@@ -126,5 +126,13 @@ export class OmdbProvider implements MovieProvider {
 
   async getPerson(): Promise<Person | null> {
     return null;
+  }
+
+  async getCredits(): Promise<CastMember[]> {
+    return [];
+  }
+
+  async getReviews(): Promise<Review[]> {
+    return [];
   }
 }

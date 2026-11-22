@@ -28,21 +28,21 @@ export function MovieGridSkeleton({ count = 8 }: { count?: number }) {
 export function MovieDetailsSkeleton() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
-      <div className="h-5 w-24 bg-zinc-800 rounded mb-6" />
+      <div className="h-5 w-24 bg-theme-surface-subtle rounded mb-6" />
       <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-72 aspect-[2/3] bg-zinc-800 rounded-lg shrink-0" />
+        <div className="w-full md:w-72 aspect-[2/3] bg-theme-surface-subtle border border-theme-border rounded-lg shrink-0" />
         <div className="flex-1 flex flex-col gap-4">
           <div>
-            <div className="h-9 w-3/4 bg-zinc-800 rounded mb-3" />
-            <div className="h-5 w-48 bg-zinc-800 rounded" />
+            <div className="h-9 w-3/4 bg-theme-surface-subtle rounded mb-3" />
+            <div className="h-5 w-48 bg-theme-surface-subtle rounded" />
           </div>
           <div className="flex gap-2">
-            <div className="h-6 w-16 bg-zinc-800 rounded-full" />
-            <div className="h-6 w-16 bg-zinc-800 rounded-full" />
+            <div className="h-6 w-16 bg-theme-surface-subtle rounded-full" />
+            <div className="h-6 w-16 bg-theme-surface-subtle rounded-full" />
           </div>
           <div className="flex flex-col gap-2 mt-2">
-            <div className="h-4 w-20 bg-zinc-800 rounded" />
-            <div className="h-20 w-full bg-zinc-800 rounded" />
+            <div className="h-4 w-20 bg-theme-surface-subtle rounded" />
+            <div className="h-20 w-full bg-theme-surface-subtle rounded" />
           </div>
         </div>
       </div>

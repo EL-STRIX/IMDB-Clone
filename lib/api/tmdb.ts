@@ -1,5 +1,5 @@
 import { MovieProvider } from "./provider";
-import { Movie, MovieDetails, Person, CursorResult } from "./types";
+import { Movie, MovieDetails, Person, CastMember, Review, CursorResult } from "./types";
 import { tmdbFetch } from "./tmdbFetch";
 import { encodeCursor, decodeCursor } from "./cursor";
 import { defaultCircuitBreaker } from "@/lib/resilience/circuitBreaker";
@@ -151,5 +151,61 @@ export class TmdbProvider implements MovieProvider {
       },
       cacheKey
     ).catch(() => null);
+  }
+
+  async getCredits(id: string): Promise<CastMember[]> {
+    const cacheKey = `credits:${id}`;
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const raw = await tmdbFetch<{
+          id: number;
+          cast: Array<{
+            id: number;
+            name: string;
+            character: string;
+            profile_path: string | null;
+          }>;
+        }>(`/3/movie/${id}/credits?api_key=${this.apiKey}&language=en-US`);
+        return (raw.cast || []).slice(0, 12).map((c) => ({
+          id: String(c.id),
+          name: c.name,
+          character: c.character,
+          profileUrl: c.profile_path
+            ? `https://image.tmdb.org/t/p/w185${c.profile_path}`
+            : null,
+        }));
+      },
+      cacheKey
+    ).catch(() => []);
+  }
+
+  async getReviews(id: string): Promise<Review[]> {
+    const cacheKey = `reviews:${id}`;
+    return defaultCircuitBreaker.execute(
+      async () => {
+        const raw = await tmdbFetch<{
+          id: number;
+          results: Array<{
+            id: string;
+            author: string;
+            content: string;
+            created_at: string;
+            url?: string;
+            author_details?: {
+              rating: number | null;
+            };
+          }>;
+        }>(`/3/movie/${id}/reviews?api_key=${this.apiKey}&language=en-US&page=1`);
+        return (raw.results || []).slice(0, 6).map((r) => ({
+          id: r.id,
+          author: r.author,
+          content: r.content,
+          rating: r.author_details?.rating ?? undefined,
+          createdAt: r.created_at,
+          url: r.url,
+        }));
+      },
+      cacheKey
+    ).catch(() => []);
   }
 }

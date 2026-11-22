@@ -26,6 +26,22 @@ export interface Person {
   biography?: string;
 }
 
+export interface CastMember {
+  id: string;
+  name: string;
+  character: string;
+  profileUrl: string | null;
+}
+
+export interface Review {
+  id: string;
+  author: string;
+  content: string;
+  rating?: number;
+  createdAt: string;
+  url?: string;
+}
+
 export interface Page<T> {
   items: T[];
   page: number;

@@ -1,123 +1,73 @@
-import Image from "next/image";
-import Link from "next/link";
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
-import { getCachedMovieDetails } from "@/lib/api/cached";
-import { MovieDetails } from "@/lib/api/types";
-import OmdbRatingsStream, { RatingsSkeleton } from "@/components/OmdbRatingsStream";
+import type { Metadata } from "next";
+import {
+  getCachedMovieDetails,
+  getCachedMovieCredits,
+  getCachedMovieReviews,
+} from "@/lib/api/cached";
+import MovieCore, { MovieCoreSkeleton } from "@/components/movie/MovieCore";
+import Credits, { CreditsSkeleton } from "@/components/movie/Credits";
+import Reviews, { ReviewsSkeleton } from "@/components/movie/Reviews";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-async function getMovieDetails(id: string): Promise<MovieDetails | null> {
-  try {
-    return await getCachedMovieDetails(id);
-  } catch (error) {
-    console.error("Error fetching movie details:", error);
-    return null;
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const movie = await getCachedMovieDetails(id);
+
+  if (!movie) {
+    return {
+      title: "Movie Not Found | IMDb Clone",
+      description: "The requested movie could not be found.",
+    };
   }
+
+  const year = movie.releaseDate ? ` (${movie.releaseDate.split("-")[0]})` : "";
+  const title = `${movie.title}${year} - IMDb Clone`;
+  const description =
+    movie.overview || `Ratings, cast, and user reviews for ${movie.title}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "video.movie",
+      images: movie.posterUrl ? [{ url: movie.posterUrl, alt: movie.title }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: movie.posterUrl ? [movie.posterUrl] : [],
+    },
+  };
 }
 
 export default async function MoviePage({ params }: PageProps) {
   const { id } = await params;
-  const movie = await getMovieDetails(id);
 
-  if (!movie) {
-    notFound();
-  }
-
-  const hours = Math.floor(movie.runtime / 60);
-  const minutes = movie.runtime % 60;
-  const runtimeFormatted = movie.runtime
-    ? `${hours > 0 ? `${hours}h ` : ""}${minutes}m`
-    : "N/A";
+  // Start all three fetches in parallel
+  const corePromise = getCachedMovieDetails(id);
+  const creditsPromise = getCachedMovieCredits(id);
+  const reviewsPromise = getCachedMovieReviews(id);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Back to list link */}
-      <div className="mb-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-theme-fg/70 hover:text-theme-primary transition-colors"
-        >
-          <span>&larr; Back to list</span>
-        </Link>
-      </div>
+      <Suspense fallback={<MovieCoreSkeleton />}>
+        <MovieCore promise={corePromise} />
+      </Suspense>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Movie Poster */}
-        <div className="relative w-full md:w-72 aspect-[2/3] bg-theme-card border border-theme-border rounded-lg overflow-hidden shrink-0">
-          {movie.posterUrl ? (
-            <Image
-              src={movie.posterUrl}
-              alt={movie.title}
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 300px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-theme-fg/40 text-sm">
-              No Poster Available
-            </div>
-          )}
-        </div>
+      <Suspense fallback={<CreditsSkeleton />}>
+        <Credits promise={creditsPromise} />
+      </Suspense>
 
-        {/* Movie Details */}
-        <div className="flex-1 flex flex-col gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-theme-fg mb-2">
-              {movie.title}
-            </h1>
-
-            {/* Metadata (Release Date, Runtime, TMDb Rating) */}
-            <div className="flex flex-wrap items-center gap-3 text-sm text-theme-fg/70">
-              {movie.releaseDate && <span>{movie.releaseDate}</span>}
-              {movie.runtime > 0 && <span>•</span>}
-              {movie.runtime > 0 && <span>{runtimeFormatted}</span>}
-              {movie.rating > 0 && <span>•</span>}
-              {movie.rating > 0 && (
-                <span className="text-theme-primary font-semibold flex items-center gap-1">
-                  ★ {movie.rating.toFixed(1)}
-                </span>
-              )}
-            </div>
-
-            {/* Slower OMDb streaming ratings wrapped in Suspense */}
-            <Suspense fallback={<RatingsSkeleton />}>
-              <OmdbRatingsStream
-                title={movie.title}
-                year={movie.releaseDate ? movie.releaseDate.split("-")[0] : undefined}
-              />
-            </Suspense>
-          </div>
-
-          {/* Genres */}
-          {movie.genres && movie.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {movie.genres.map((genre) => (
-                <span
-                  key={genre}
-                  className="px-2.5 py-1 text-xs font-medium rounded-full bg-theme-card text-theme-fg/90 border border-theme-border"
-                >
-                  {genre}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Overview */}
-          <div>
-            <h2 className="text-base font-semibold text-theme-fg mb-1">
-              Overview
-            </h2>
-            <p className="text-theme-fg/80 leading-relaxed text-sm sm:text-base">
-              {movie.overview || "No overview available."}
-            </p>
-          </div>
-        </div>
-      </div>
+      <Suspense fallback={<ReviewsSkeleton />}>
+        <Reviews promise={reviewsPromise} />
+      </Suspense>
     </div>
   );
 }
