@@ -97,6 +97,14 @@ export default function TrailerCarousel({
     return () => clearInterval(interval);
   }, [isPaused, paginate]);
 
+  const closeModal = () => {
+    setActiveVideo(null);
+    // Return focus to trigger element
+    setTimeout(() => {
+      triggerRef.current?.focus();
+    }, 50);
+  };
+
   // Focus trapping and Escape key handler for dialog
   useEffect(() => {
     if (!activeVideo) return;
@@ -146,14 +154,6 @@ export default function TrailerCarousel({
   const openModal = (trailer: Trailer, e: React.MouseEvent<HTMLElement>) => {
     triggerRef.current = e.currentTarget;
     setActiveVideo(trailer);
-  };
-
-  const closeModal = () => {
-    setActiveVideo(null);
-    // Return focus to trigger element
-    setTimeout(() => {
-      triggerRef.current?.focus();
-    }, 50);
   };
 
   if (!trailers || trailers.length === 0) {

@@ -16,7 +16,7 @@ export function RatingsSkeleton() {
   );
 }
 
-export default async function OmdbRatingsStream({ title, year }: OmdbRatingsProps) {
+export default async function OmdbRatingsStream({ title, year: _year }: OmdbRatingsProps) {
   await connection();
   const omdb = new OmdbProvider();
   let details = null;

@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: "Bad Request", message: "Failed to process sign in request" },
       { status: 400 }

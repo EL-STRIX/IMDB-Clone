@@ -57,7 +57,7 @@ export default function FilmographyExplorer({
   const [sortBy, setSortBy] = useState<string>(initialSort);
 
   // Map genre ID to genre name
-  const genreMap = useMemo(() => {
+  const _genreMap = useMemo(() => {
     const map = new Map<number, string>();
     genres.forEach((g) => map.set(g.id, g.name));
     return map;

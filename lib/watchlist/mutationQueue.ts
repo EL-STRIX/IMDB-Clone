@@ -5,8 +5,6 @@ const DB_NAME = "imdb-watchlist-db";
 const DB_VERSION = 2;
 const MUTATIONS_STORE = "pendingMutations";
 
-let queueDbPromise: Promise<IDBPDatabase> | null = null;
-
 export async function getQueueDb(customDbName: string = DB_NAME): Promise<IDBPDatabase> {
   return openDB(customDbName, DB_VERSION, {
     upgrade(db) {

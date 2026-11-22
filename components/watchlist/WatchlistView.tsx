@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Reorder, motion } from "framer-motion";
+import { Reorder } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getWatchlistRepository } from "@/lib/watchlist/repository";
 import { WatchlistItem } from "@/lib/watchlist/schema";

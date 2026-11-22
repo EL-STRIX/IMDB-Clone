@@ -1,6 +1,5 @@
 import { WatchlistItem, WatchlistItemSchema } from "./schema";
 import {
-  WatchlistMutation,
   SyncBatchRequest,
   SyncBatchResponse,
   ServerWatchlistItem,
@@ -91,7 +90,7 @@ class ServerWatchlistStore {
     // Filter out deleted tombstones for client sync payload
     const activeServerItems: WatchlistItem[] = Array.from(this.items.values())
       .filter((item) => !item.isDeleted)
-      .map(({ serverUpdatedAt, isDeleted, ...cleanItem }) => cleanItem)
+      .map(({ serverUpdatedAt: _serverUpdatedAt, isDeleted: _isDeleted, ...cleanItem }) => cleanItem)
       .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
 
     return {
@@ -105,7 +104,7 @@ class ServerWatchlistStore {
   getServerItems(): WatchlistItem[] {
     return Array.from(this.items.values())
       .filter((item) => !item.isDeleted)
-      .map(({ serverUpdatedAt, isDeleted, ...cleanItem }) => cleanItem);
+      .map(({ serverUpdatedAt: _serverUpdatedAt, isDeleted: _isDeleted, ...cleanItem }) => cleanItem);
   }
 
   getRawServerItems(): ServerWatchlistItem[] {

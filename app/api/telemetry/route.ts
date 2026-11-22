@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
       `[WEB VITALS] ${metric.name}: ${metric.value.toFixed(2)} (rating: ${metric.rating || "N/A"}, id: ${metric.id})`
     );
     return NextResponse.json({ ok: true });
-  } catch (err) {
+  } catch (_err) {
     return NextResponse.json({ error: "Invalid metric data" }, { status: 400 });
   }
 }

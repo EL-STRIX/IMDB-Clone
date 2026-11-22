@@ -1,5 +1,5 @@
 import fallbackMovies from "../fallback/movies.json";
-import { Movie, CursorResult } from "../api/types";
+import { Movie } from "../api/types";
 
 export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
 

@@ -15,7 +15,7 @@ export interface User {
 export function can(
   user: User | null | undefined,
   action: Action,
-  resource: Resource
+  _resource: Resource
 ): boolean {
   // Public read access for resources
   if (action === "read") {
