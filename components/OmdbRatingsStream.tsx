@@ -17,11 +17,7 @@ export function RatingsSkeleton() {
 }
 
 export default async function OmdbRatingsStream({ title, year }: OmdbRatingsProps) {
-  try {
-    await connection();
-  } catch {
-    // Graceful fallback for non-request environments
-  }
+  await connection();
   const omdb = new OmdbProvider();
   let details = null;
 

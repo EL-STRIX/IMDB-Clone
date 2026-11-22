@@ -40,9 +40,9 @@ export async function withRetry<T>(
         const parsed = parseInt(retryAfterHeader, 10);
         delayMs = isNaN(parsed) ? initialDelay : parsed * 1000;
       } else {
-        // Exponential backoff with jitter
+        // Exponential backoff with deterministic attempt-based jitter (avoids Math.random during prerender)
         const backoff = initialDelay * Math.pow(2, attempt - 1);
-        const jitter = Math.random() * 100;
+        const jitter = (attempt * 37) % 100;
         delayMs = Math.min(backoff + jitter, maxDelay);
       }
 

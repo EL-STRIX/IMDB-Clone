@@ -22,7 +22,7 @@ export async function tmdbFetch<T>(path: string): Promise<T> {
     ip = "3.175.86.67";
   }
 
-  const startTime = Date.now();
+  const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
   let retryCount = 0;
 
   return withRetry(async () => {
@@ -48,7 +48,8 @@ export async function tmdbFetch<T>(path: string): Promise<T> {
             raw += chunk;
           });
           res.on("end", () => {
-            const durationMs = Date.now() - startTime;
+            const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+            const durationMs = now - startTime;
             const status = res.statusCode || 200;
 
             if (status >= 400) {
